@@ -304,7 +304,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                 <td>{{ c.w }} × {{ c.h }} at {{ c.x }}, {{ c.y }}</td>
                 <td class="num">{{ m2(c.area) }}</td>
                 <td class="num">{{ money(c.cost) }}</td>
-                <td><IconButton v-if="i === 0" icon="undo" label="Undo cut" @click="undoCut" /></td>
+                <td class="action"><IconButton v-if="i === 0" icon="undo" label="Undo cut" class="plain" @click="undoCut" /></td>
               </tr>
             </table>
           </section>

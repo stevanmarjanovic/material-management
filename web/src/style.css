@@ -60,6 +60,8 @@ textarea { font: inherit; color: var(--text); background: var(--card); border: 1
 .span { grid-column: 1 / -1; }
 .notes { white-space: pre-wrap; }
 td.num, th.num { text-align: right; }
+td.action { width: 1%; } /* column shrinks to its icon */
+td.action .icon-btn { display: flex; margin: 0 auto; } /* block: the cell centers it exactly */
 tr.total td { font-weight: 600; border-bottom: none; }
 .composition { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap: 1.5rem; }
 .fiber-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .25rem; }
@@ -77,3 +79,6 @@ tr.total td { font-weight: 600; border-bottom: none; }
 .care-option.selected { opacity: 1; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; padding: .3rem; }
 .icon-btn .material-symbols-rounded { font-size: 20px; }
+/* Icon only, no button box: fits a table row without making it taller. */
+.icon-btn.plain { padding: 0; border: 0; background: none; color: var(--accent); }
+.icon-btn.plain .material-symbols-rounded { font-size: 18px; }
