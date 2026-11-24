@@ -9,8 +9,10 @@
 body { margin: 0; background: var(--bg); }
 h2, h3 { margin: 0 0 .75rem; }
 .layout { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; }
-aside { border-right: 1px solid var(--border); padding: 1rem; }
-aside ul { list-style: none; padding: 0; margin: 1rem 0 0; }
+/* Sidebar fills the window; the list scrolls and the add button stays at the bottom. */
+aside { border-right: 1px solid var(--border); padding: 1rem; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
+aside ul { list-style: none; padding: 0; margin: 1rem 0 0; flex: 1; overflow-y: auto; }
+.aside-footer { display: flex; justify-content: flex-end; padding-top: 1rem; }
 aside li { display: flex; gap: .75rem; padding: .5rem; border-radius: 8px; cursor: pointer; }
 aside li:hover, aside li.active { background: var(--card); }
 .thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; background: var(--border); flex: none; }
@@ -37,7 +39,6 @@ button { cursor: pointer; }
 button:disabled { opacity: .5; cursor: default; }
 button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 button.danger { color: var(--danger); }
-.wide { width: 100%; }
 .actions { display: flex; gap: .5rem; }
 .actions.col { flex-direction: column; }
 .muted { color: var(--muted); }
@@ -45,6 +46,7 @@ button.danger { color: var(--danger); }
 table { border-collapse: collapse; width: 100%; }
 th, td { text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--border); }
 @media (max-width: 800px) {
+  aside { position: static; height: auto; }
   .layout { grid-template-columns: 1fr; }
   .head, .cut-layout { flex-direction: column; }
 }

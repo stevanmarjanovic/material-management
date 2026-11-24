@@ -151,7 +151,6 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
       </div>
 
       <template v-if="tab === 'materials'">
-        <IconButton icon="add" label="New material" class="primary wide" @click="select(null); editing = {}" />
         <ul>
           <li v-for="m in materials" :key="m.id" :class="{ active: m.id === selectedId }" @click="select(m.id)">
             <img v-if="m.hasPhoto" :src="`/api/materials/${m.id}/photo?v=${photoVersion}`" alt="" class="thumb" />
@@ -167,7 +166,6 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
       </template>
 
       <template v-else>
-        <IconButton icon="add" label="New project" class="primary wide" @click="selectProject(null); editing = {}" />
         <ul>
           <li v-for="p in projects" :key="p.id" :class="{ active: p.id === projectId }" @click="selectProject(p.id)">
             <img v-if="p.hasPhoto" :src="`/api/projects/${p.id}/photo?v=${photoVersion}`" alt="" class="thumb" />
@@ -181,6 +179,11 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
         </ul>
         <p v-if="!projects.length" class="muted">No projects yet.</p>
       </template>
+
+      <div class="aside-footer">
+        <IconButton v-if="tab === 'materials'" icon="add" label="New material" class="primary" @click="select(null); editing = {}" />
+        <IconButton v-else icon="add" label="New project" class="primary" @click="selectProject(null); editing = {}" />
+      </div>
     </aside>
 
     <main>
