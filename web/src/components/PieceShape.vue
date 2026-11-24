@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import { fitCut, nearestOnFabric } from '../fitCut.js'
 
 // Draws one piece (a set of rectangles, cm). With `editable`, a rectangle can be dragged and is v-model'd as `cut`.
 const props = defineProps({ shape: Array, editable: Boolean, color: String })
@@ -60,14 +61,13 @@ function toCm(e) {
 }
 function down(e) {
   if (!props.editable) return
-  start = toCm(e)
+  start = nearestOnFabric(props.shape, toCm(e))
   svg.value.setPointerCapture(e.pointerId)
   cut.value = { x: start.x, y: start.y, w: 0, h: 0 }
 }
 function move(e) {
   if (!start) return
-  const p = toCm(e)
-  cut.value = { x: Math.min(start.x, p.x), y: Math.min(start.y, p.y), w: Math.abs(p.x - start.x), h: Math.abs(p.y - start.y) }
+  cut.value = fitCut(props.shape, start, toCm(e)) // stays on the fabric, snaps to its edges
 }
 function up() {
   start = null

@@ -71,7 +71,8 @@ The database `api/materials.db` is created automatically on first start. Back up
 ## Tests
 
 ```bash
-dotnet test
+dotnet test           # API
+cd web && npm test   # frontend: keeping a dragged cut on the fabric
 ```
 
 The tests cover the cutting geometry: cutting holes, splitting a piece in two, rejecting cuts off the fabric, and using up a whole piece.
