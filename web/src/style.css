@@ -12,7 +12,8 @@ h2, h3 { margin: 0 0 .75rem; }
 /* Sidebar fills the window; the list scrolls and the add button stays at the bottom. */
 aside { border-right: 1px solid var(--border); padding: 1rem; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; }
 aside ul { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
-.aside-footer { display: flex; justify-content: flex-end; padding-top: 1rem; }
+.aside-footer { display: flex; justify-content: space-between; padding-top: 1rem; }
+.icon-btn.active { color: var(--accent); border-color: var(--accent); }
 aside li { display: flex; gap: .75rem; padding: .5rem; border-radius: 8px; cursor: pointer; }
 aside li:hover, aside li.active { background: var(--card); }
 .thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; background: var(--border); flex: none; }

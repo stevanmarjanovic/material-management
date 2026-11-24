@@ -7,6 +7,7 @@ import MaterialForm from './components/MaterialForm.vue'
 import ProjectForm from './components/ProjectForm.vue'
 import PieceShape from './components/PieceShape.vue'
 import PriceTag from './components/PriceTag.vue'
+import { currency } from './settings.js'
 
 const tab = ref('materials') // 'materials' | 'projects'
 const materials = ref([])
@@ -19,6 +20,7 @@ const cut = ref(null)
 const cutLabel = ref('')
 const cutProjectId = ref('') // kept between cuts: you usually cut several pieces for one project
 const error = ref('')
+const showSettings = ref(false)
 const photoVersion = ref(Date.now()) // cache-buster after photo upload
 const CUT_HELP = 'Drag a rectangle on the fabric (snaps to 0.5 cm), then fine-tune the numbers. Origin is the top-left corner.'
 const FIBER_HELP = 'By weight: cut area × g/m² × fiber %'
@@ -63,6 +65,7 @@ async function uploadPhoto(kind, id, photo) {
 // --- Materials ---
 
 function select(id) {
+  showSettings.value = false
   tab.value = 'materials'
   selectedId.value = id
   editing.value = null
@@ -114,6 +117,7 @@ async function undoCut() {
 // --- Projects ---
 
 function selectProject(id) {
+  showSettings.value = false
   tab.value = 'projects'
   projectId.value = id
   editing.value = null
@@ -146,8 +150,8 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
   <div class="layout">
     <aside>
       <div class="tabs">
-        <button :class="{ active: tab === 'materials' }" @click="tab = 'materials'; editing = null">Materials</button>
-        <button :class="{ active: tab === 'projects' }" @click="tab = 'projects'; editing = null">Projects</button>
+        <button :class="{ active: tab === 'materials' }" @click="tab = 'materials'; editing = null; showSettings = false">Materials</button>
+        <button :class="{ active: tab === 'projects' }" @click="tab = 'projects'; editing = null; showSettings = false">Projects</button>
       </div>
 
       <template v-if="tab === 'materials'">
@@ -179,6 +183,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
       </template>
 
       <div class="aside-footer">
+        <IconButton icon="settings" label="Settings" :class="{ active: showSettings }" @click="showSettings = true" />
         <IconButton v-if="tab === 'materials'" icon="add" label="New material" class="primary" @click="select(null); editing = {}" />
         <IconButton v-else icon="add" label="New project" class="primary" @click="selectProject(null); editing = {}" />
       </div>
@@ -187,8 +192,17 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
     <main>
       <p v-if="error" class="error">{{ error }}</p>
 
+      <!-- ===== Settings (this browser only) ===== -->
+      <section v-if="showSettings" class="card form">
+        <h2>Settings</h2>
+        <fieldset>
+          <label>Currency<input v-model.trim="currency" maxlength="10" placeholder="RSD" /></label>
+        </fieldset>
+        <p class="muted">Saved in this browser only. It's just the label next to prices; amounts are not converted.</p>
+      </section>
+
       <!-- ===== Materials ===== -->
-      <template v-if="tab === 'materials'">
+      <template v-else-if="tab === 'materials'">
         <MaterialForm v-if="editing" :key="editing.id ?? 'new'" :initial="editing" @save="saveMaterial" @cancel="editing = null" />
 
         <template v-else-if="selected">
@@ -210,9 +224,9 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                 </template>
                 <template v-if="selected.pricePerMeter != null">
                   <dt>Price</dt>
-                  <dd><PriceTag :price="selected.pricePerMeter" :final="selected.finalPricePerMeter" :discount="selected.discountPercent" unit=" /m" /></dd>
+                  <dd><PriceTag :price="selected.pricePerMeter" :final="selected.finalPricePerMeter" :discount="selected.discountPercent" :unit="` ${currency}/m`" /></dd>
                   <dt>Total</dt>
-                  <dd>{{ money(selected.totalPrice) }}</dd>
+                  <dd>{{ money(selected.totalPrice) }} {{ currency }}</dd>
                 </template>
                 <template v-if="selected.needleType || selected.needleSize">
                   <dt>Needle</dt>
@@ -282,7 +296,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
             <h3>Cut log</h3>
             <p v-if="!selected.cuts.length" class="muted">No cuts yet.</p>
             <table v-else>
-              <tr><th>Date</th><th>Project</th><th>Label</th><th>Size (cm)</th><th class="num">m²</th><th class="num">Price</th><th /></tr>
+              <tr><th>Date</th><th>Project</th><th>Label</th><th>Size (cm)</th><th class="num">m²</th><th class="num">Price ({{ currency }})</th><th /></tr>
               <tr v-for="(c, i) in selected.cuts" :key="c.id">
                 <td>{{ new Date(c.createdAt).toLocaleString() }}</td>
                 <td><a v-if="c.projectId" href="#" @click.prevent="selectProject(c.projectId)">{{ c.projectName }}</a></td>
@@ -324,7 +338,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
             <h3>Materials used</h3>
             <p v-if="!project.cuts.length" class="muted">No cuts yet. Cut a piece under Materials and pick this project.</p>
             <table v-else>
-              <tr><th>Material</th><th class="num">Pieces</th><th class="num">m²</th><th class="num">Price</th></tr>
+              <tr><th>Material</th><th class="num">Pieces</th><th class="num">m²</th><th class="num">Price ({{ currency }})</th></tr>
               <tr v-for="r in project.materials" :key="r.materialId">
                 <td><a href="#" @click.prevent="select(r.materialId)">{{ r.name }}</a> <small class="muted">{{ r.color }}</small></td>
                 <td class="num">{{ r.pieces }}</td>
@@ -383,7 +397,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
           <section v-if="project.cuts.length" class="card">
             <h3>Cut pieces</h3>
             <table>
-              <tr><th>Material</th><th>Label</th><th>Size (cm)</th><th class="num">m²</th><th class="num">Price</th></tr>
+              <tr><th>Material</th><th>Label</th><th>Size (cm)</th><th class="num">m²</th><th class="num">Price ({{ currency }})</th></tr>
               <tr v-for="c in project.cuts" :key="c.id">
                 <td>{{ c.materialName }}</td>
                 <td>{{ c.label }}</td>

@@ -3,6 +3,7 @@ import { reactive, ref, watch } from 'vue'
 import { CARE, FIBERS, FIBER_COLORS, NEEDLE_TYPES, NEEDLE_SIZES } from '../catalog.js'
 import FiberSlider from './FiberSlider.vue'
 import CareIcon from './CareIcon.vue'
+import { currency } from '../settings.js'
 import PriceTag from './PriceTag.vue'
 import IconButton from './IconButton.vue'
 
@@ -146,11 +147,11 @@ function submit() {
     <fieldset>
       <legend>Purchase</legend>
       <label v-if="isNew">Bought length (cm) *<input v-model.number="f.lengthCm" type="number" step="0.1" min="0.1" required /></label>
-      <label>Price per meter<input v-model.number="f.pricePerMeter" type="number" step="0.01" min="0" /></label>
+      <label>Price per meter ({{ currency }})<input v-model.number="f.pricePerMeter" type="number" step="0.01" min="0" /></label>
       <label>Discount (%)<input v-model.number="f.discountPercent" type="number" step="0.1" min="0" max="100" /></label>
       <p v-if="f.pricePerMeter" class="muted">
-        <PriceTag :price="f.pricePerMeter" :final="price?.finalPricePerMeter" :discount="f.discountPercent || 0" unit=" /m" />
-        <template v-if="price?.totalPrice != null"><br />Total: {{ price.totalPrice.toFixed(2) }}</template>
+        <PriceTag :price="f.pricePerMeter" :final="price?.finalPricePerMeter" :discount="f.discountPercent || 0" :unit="` ${currency}/m`" />
+        <template v-if="price?.totalPrice != null"><br />Total: {{ price.totalPrice.toFixed(2) }} {{ currency }}</template>
       </p>
       <label>Store<input v-model="f.store" /></label>
       <label>Date<input v-model="f.purchaseDate" type="date" /></label>
