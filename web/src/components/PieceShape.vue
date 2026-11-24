@@ -11,6 +11,14 @@ const length = computed(() => Math.max(...props.shape.map((r) => r.y + r.h)))
 const pad = computed(() => Math.max(width.value, length.value) * 0.08)
 const viewBox = computed(() => `${-pad.value} ${-pad.value} ${width.value + 2 * pad.value} ${length.value + 2 * pad.value}`)
 const font = computed(() => Math.max(width.value, length.value) * 0.045)
+// Double-headed arrow to the right of the piece, along its full length.
+const grain = computed(() => {
+  const x = width.value + pad.value * 0.35
+  const y0 = 0
+  const y1 = length.value
+  const a = font.value * 0.25
+  return `M${x} ${y0}V${y1}M${x - a} ${y0 + a}L${x} ${y0}L${x + a} ${y0 + a}M${x - a} ${y1 - a}L${x} ${y1}L${x + a} ${y1 - a}`
+})
 
 // Outline of the union: compress coordinates into a grid, then draw every edge between a filled and an empty cell.
 const outline = computed(() => {
@@ -73,6 +81,10 @@ function up() {
     <path :d="outline" stroke="#333" :stroke-width="font * 0.12" fill="none" stroke-linecap="square" />
     <text :x="width / 2" :y="-pad * 0.3" :font-size="font" text-anchor="middle">{{ width }} cm</text>
     <text :x="-pad * 0.3" :y="length / 2" :font-size="font" text-anchor="middle" :transform="`rotate(-90 ${-pad * 0.3} ${length / 2})`">{{ length }} cm</text>
+    <!-- Grain line: fabric comes off the roll, so the lengthwise grain runs along the length. -->
+    <path v-if="editable" :d="grain" fill="none" stroke="currentColor" :stroke-width="font * 0.12" stroke-linecap="round" stroke-linejoin="round">
+      <title>Grain line</title>
+    </path>
     <rect
       v-if="cut && cut.w > 0 && cut.h > 0"
       :x="cut.x" :y="cut.y" :width="cut.w" :height="cut.h"
