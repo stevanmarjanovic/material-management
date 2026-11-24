@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { CARE, PROJECT_STATUS } from '../catalog.js'
+import IconButton from './IconButton.vue'
 
 const props = defineProps({ initial: Object })
 const emit = defineEmits(['save', 'cancel'])
@@ -44,8 +45,8 @@ function submit() {
       </label>
     </fieldset>
     <div class="actions">
-      <button type="submit" class="primary">Save</button>
-      <button type="button" @click="emit('cancel')">Cancel</button>
+      <IconButton icon="check" label="Save" type="submit" class="primary" />
+      <IconButton icon="close" label="Cancel" type="button" @click="emit('cancel')" />
     </div>
   </form>
 </template>

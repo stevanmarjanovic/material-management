@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { CARE, FIBERS, NEEDLE_TYPES, NEEDLE_SIZES } from '../catalog.js'
 import PriceTag from './PriceTag.vue'
+import IconButton from './IconButton.vue'
 
 // `initial` is an existing material (edit), a copy without id (duplicate), or {} (new).
 const props = defineProps({ initial: Object })
@@ -75,10 +76,10 @@ function submit() {
           <option v-for="(text, v) in FIBERS" :key="v" :value="v">{{ text }}</option>
         </select>
         <input v-model.number="p.percent" type="number" step="0.1" min="0.1" max="100" aria-label="Percent" /> %
-        <button type="button" @click="f.composition.splice(i, 1)" aria-label="Remove fiber">✕</button>
+        <IconButton icon="remove" label="Remove fiber" type="button" @click="f.composition.splice(i, 1)" />
       </div>
       <div class="fiber-row">
-        <button type="button" @click="addFiber">+ Add fiber</button>
+        <IconButton icon="add" label="Add fiber" type="button" @click="addFiber" />
         <span v-if="compositionError" class="error-text">{{ compositionError }}</span>
       </div>
     </fieldset>
@@ -123,8 +124,8 @@ function submit() {
     </fieldset>
 
     <div class="actions">
-      <button type="submit" class="primary" :disabled="!!compositionError">Save</button>
-      <button type="button" @click="emit('cancel')">Cancel</button>
+      <IconButton icon="check" label="Save" type="submit" class="primary" :disabled="!!compositionError" />
+      <IconButton icon="close" label="Cancel" type="button" @click="emit('cancel')" />
     </div>
   </form>
 </template>

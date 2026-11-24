@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { CARE, FIBERS, NEEDLE_TYPES, NEEDLE_SIZES, PROJECT_STATUS, formatComposition } from './catalog.js'
 import CareIcon from './components/CareIcon.vue'
+import IconButton from './components/IconButton.vue'
 import MaterialForm from './components/MaterialForm.vue'
 import ProjectForm from './components/ProjectForm.vue'
 import PieceShape from './components/PieceShape.vue'
@@ -150,7 +151,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
       </div>
 
       <template v-if="tab === 'materials'">
-        <button class="primary wide" @click="select(null); editing = {}">+ New material</button>
+        <IconButton icon="add" label="New material" class="primary wide" @click="select(null); editing = {}" />
         <ul>
           <li v-for="m in materials" :key="m.id" :class="{ active: m.id === selectedId }" @click="select(m.id)">
             <img v-if="m.hasPhoto" :src="`/api/materials/${m.id}/photo?v=${photoVersion}`" alt="" class="thumb" />
@@ -166,7 +167,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
       </template>
 
       <template v-else>
-        <button class="primary wide" @click="selectProject(null); editing = {}">+ New project</button>
+        <IconButton icon="add" label="New project" class="primary wide" @click="selectProject(null); editing = {}" />
         <ul>
           <li v-for="p in projects" :key="p.id" :class="{ active: p.id === projectId }" @click="selectProject(p.id)">
             <img v-if="p.hasPhoto" :src="`/api/projects/${p.id}/photo?v=${photoVersion}`" alt="" class="thumb" />
@@ -226,9 +227,9 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
               </div>
             </div>
             <div class="actions col">
-              <button @click="editing = { ...selected }">Edit</button>
-              <button @click="duplicate">Duplicate</button>
-              <button class="danger" @click="removeMaterial">Delete</button>
+              <IconButton icon="edit" label="Edit" @click="editing = { ...selected }" />
+              <IconButton icon="content_copy" label="Duplicate" @click="duplicate" />
+              <IconButton icon="delete" label="Delete" class="danger" @click="removeMaterial" />
             </div>
           </section>
 
@@ -266,10 +267,10 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                     </select>
                   </label>
                   <label>Label<input v-model="cutLabel" placeholder="e.g. skirt front" /></label>
-                  <button type="submit" class="primary" :disabled="!(cut.w > 0 && cut.h > 0)">Save cut</button>
-                  <button type="button" @click="cut = null">Clear</button>
+                  <IconButton icon="content_cut" label="Save cut" type="submit" class="primary" :disabled="!(cut.w > 0 && cut.h > 0)" />
+                  <IconButton icon="close" label="Clear" type="button" @click="cut = null" />
                 </template>
-                <button v-else type="button" @click="cut = { x: 0, y: 0, w: 0, h: 0 }">Enter numbers instead</button>
+                <IconButton v-else icon="keyboard" label="Enter numbers instead" type="button" @click="cut = { x: 0, y: 0, w: 0, h: 0 }" />
               </form>
             </div>
           </section>
@@ -286,7 +287,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                 <td>{{ c.w }} × {{ c.h }} at {{ c.x }}, {{ c.y }}</td>
                 <td class="num">{{ m2(c.area) }}</td>
                 <td class="num">{{ money(c.cost) }}</td>
-                <td><button v-if="i === 0" @click="undoCut">Undo</button></td>
+                <td><IconButton v-if="i === 0" icon="undo" label="Undo cut" @click="undoCut" /></td>
               </tr>
             </table>
           </section>
@@ -311,8 +312,8 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
               <p v-if="project.notes" class="notes">{{ project.notes }}</p>
             </div>
             <div class="actions col">
-              <button @click="editing = { ...project }">Edit</button>
-              <button class="danger" @click="removeProject">Delete</button>
+              <IconButton icon="edit" label="Edit" @click="editing = { ...project }" />
+              <IconButton icon="delete" label="Delete" class="danger" @click="removeProject" />
             </div>
           </section>
 
