@@ -66,6 +66,8 @@ textarea { font: inherit; color: var(--text); background: var(--card); border: 1
 td.num, th.num { text-align: right; }
 td.action { width: 1%; } /* column shrinks to its icon */
 td.action .icon-btn { display: flex; margin: 0 auto; } /* block: the cell centers it exactly */
+/* Several icons in one cell: start at the left, so the same icon lines up in every row. */
+td.action .actions .icon-btn { margin: 0; }
 tr.total td { font-weight: 600; border-bottom: none; }
 .composition { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap: 1.5rem; }
 .fiber-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .25rem; }
