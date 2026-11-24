@@ -157,8 +157,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
             <span v-else class="thumb" :style="{ background: m.previewColor }" />
             <span>
               <strong>{{ m.name }}</strong><br />
-              <small>{{ m.color }}</small><br />
-              <small>{{ m.pieces.length }} piece(s) · {{ m2(m.remainingArea) }} m²</small>
+              <small>{{ m.color }}</small>
             </span>
           </li>
         </ul>
@@ -172,8 +171,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
             <span v-else class="thumb" />
             <span>
               <strong>{{ p.name }}</strong><br />
-              <small>{{ PROJECT_STATUS[p.status] }}<template v-if="p.startDate"> · {{ p.startDate }}</template></small><br />
-              <small>{{ p.totals.pieces }} cut(s) · {{ m2(p.totals.area) }} m²</small>
+              <small>{{ PROJECT_STATUS[p.status] }}<template v-if="p.startDate"> · {{ p.startDate }}</template></small>
             </span>
           </li>
         </ul>
