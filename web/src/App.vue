@@ -329,6 +329,45 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                 <template v-if="project.startDate"><dt>Started</dt><dd>{{ project.startDate }}</dd></template>
               </dl>
               <p v-if="project.notes" class="notes">{{ project.notes }}</p>
+              <!-- Label info: fiber composition and care -->
+              <template v-if="project.fibers.length">
+                <h3 class="sub">
+                  Fiber composition
+                  <span class="info material-symbols-rounded" role="img" tabindex="0" :title="FIBER_HELP" :aria-label="FIBER_HELP">help</span>
+                </h3>
+                <table>
+                  <tr><th>Fiber</th><th class="num">Grams</th><th class="num">%</th></tr>
+                  <tr v-for="fb in project.fibers" :key="fb.fiber">
+                    <td>{{ FIBERS[fb.fiber] }}</td>
+                    <td class="num">{{ fb.grams.toFixed(1) }}</td>
+                    <td class="num">{{ fb.percent.toFixed(1) }}</td>
+                  </tr>
+                </table>
+                <p v-if="project.uncountedCuts" class="muted">
+                  {{ project.uncountedCuts }} cut(s) not counted: their material has no g/m² or no composition.
+                </p>
+              </template>
+              <template v-if="project.cuts.length || Object.keys(CARE).some((k) => project[k])">
+                <h3 class="sub">
+                  Care for the finished product
+                  <span class="info material-symbols-rounded" role="img" tabindex="0" :title="CARE_HELP" :aria-label="CARE_HELP">help</span>
+                </h3>
+                <div class="care-list">
+                  <template v-for="(c, key) in CARE" :key="key">
+                    <div v-if="project[key] || project.care[key]" class="care-item">
+                      <CareIcon :category="key" :value="project[key] || project.care[key]" />
+                      <span>{{ c.options[project[key] || project.care[key]] }}</span>
+                      <small
+                        v-if="project[key] && project[key] !== project.care[key]" class="muted"
+                        :title="`Calculated: ${project.care[key] ? c.options[project.care[key]] : 'not set'}`"
+                      >(edited)</small>
+                    </div>
+                  </template>
+                </div>
+                <p v-for="(names, key) in project.care.missing" :key="key" class="muted">
+                  {{ CARE[key].label }} not set for: {{ names.join(', ') }}
+                </p>
+              </template>
             </div>
             <div class="actions col">
               <IconButton icon="edit" label="Edit" @click="editing = { ...project }" />
@@ -354,46 +393,6 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                 <td class="num">{{ money(project.totals.cost) }}</td>
               </tr>
             </table>
-          </section>
-
-          <section v-if="project.cuts.length || Object.keys(CARE).some((k) => project[k])" class="card">
-            <h3>
-              Care for the finished product
-              <span class="info material-symbols-rounded" role="img" tabindex="0" :title="CARE_HELP" :aria-label="CARE_HELP">help</span>
-            </h3>
-            <div class="care-list">
-              <template v-for="(c, key) in CARE" :key="key">
-                <div v-if="project[key] || project.care[key]" class="care-item">
-                  <CareIcon :category="key" :value="project[key] || project.care[key]" />
-                  <span>{{ c.options[project[key] || project.care[key]] }}</span>
-                  <small
-                    v-if="project[key] && project[key] !== project.care[key]" class="muted"
-                    :title="`Calculated: ${project.care[key] ? c.options[project.care[key]] : 'not set'}`"
-                  >(edited)</small>
-                </div>
-              </template>
-            </div>
-            <p v-for="(names, key) in project.care.missing" :key="key" class="muted">
-              {{ CARE[key].label }} not set for: {{ names.join(', ') }}
-            </p>
-          </section>
-
-          <section v-if="project.fibers.length" class="card">
-            <h3>
-              Fiber composition
-              <span class="info material-symbols-rounded" role="img" tabindex="0" :title="FIBER_HELP" :aria-label="FIBER_HELP">help</span>
-            </h3>
-            <table>
-              <tr><th>Fiber</th><th class="num">Grams</th><th class="num">%</th></tr>
-              <tr v-for="fb in project.fibers" :key="fb.fiber">
-                <td>{{ FIBERS[fb.fiber] }}</td>
-                <td class="num">{{ fb.grams.toFixed(1) }}</td>
-                <td class="num">{{ fb.percent.toFixed(1) }}</td>
-              </tr>
-            </table>
-            <p v-if="project.uncountedCuts" class="muted">
-              {{ project.uncountedCuts }} cut(s) not counted: their material has no g/m² or no composition.
-            </p>
           </section>
 
           <section v-if="project.cuts.length" class="card">
