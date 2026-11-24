@@ -19,6 +19,8 @@ const cutLabel = ref('')
 const cutProjectId = ref('') // kept between cuts: you usually cut several pieces for one project
 const error = ref('')
 const photoVersion = ref(Date.now()) // cache-buster after photo upload
+const CUT_HELP = 'Drag a rectangle on the fabric (snaps to 0.5 cm), then fine-tune the numbers. Origin is the top-left corner.'
+const FIBER_HELP = 'By weight: cut area × g/m² × fiber %'
 
 const selected = computed(() => materials.value.find((m) => m.id === selectedId.value))
 const project = computed(() => projects.value.find((p) => p.id === projectId.value))
@@ -288,8 +290,10 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
           </section>
 
           <section v-if="piece" class="card">
-            <h3>Cut from piece #{{ piece.id }}</h3>
-            <p class="muted">Drag a rectangle on the fabric (snaps to 0.5 cm), then fine-tune the numbers. Origin is the top-left corner.</p>
+            <h3>
+              Cut from piece #{{ piece.id }}
+              <span class="info" tabindex="0" :title="CUT_HELP" :aria-label="CUT_HELP">🛈</span>
+            </h3>
             <div class="cut-layout">
               <div class="grow"><PieceShape v-model:cut="cut" :shape="piece.shape" :color="selected.previewColor" editable /></div>
               <form class="cut-form" @submit.prevent="saveCut">
@@ -376,8 +380,10 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
           </section>
 
           <section v-if="project.fibers.length" class="card">
-            <h3>Fiber composition</h3>
-            <p class="muted">By weight: cut area × g/m² × fiber %.</p>
+            <h3>
+              Fiber composition
+              <span class="info" tabindex="0" :title="FIBER_HELP" :aria-label="FIBER_HELP">🛈</span>
+            </h3>
             <table>
               <tr><th>Fiber</th><th class="num">Grams</th><th class="num">%</th></tr>
               <tr v-for="fb in project.fibers" :key="fb.fiber">
