@@ -60,9 +60,12 @@ textarea { font: inherit; color: var(--text); background: var(--card); border: 1
 .notes { white-space: pre-wrap; }
 td.num, th.num { text-align: right; }
 tr.total td { font-weight: 600; border-bottom: none; }
-.fiber-row { display: flex; align-items: center; gap: .5rem; grid-column: 1 / -1; }
-.fiber-row input { width: 6rem; }
-.error-text { color: var(--danger); }
+.composition { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(180px, 1fr) 2fr; gap: 1.5rem; }
+.fiber-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .25rem; }
+.fiber-list li { display: flex; align-items: center; gap: .5rem; }
+.fiber-list li strong, .composition > .fiber-list li .icon-btn { margin-left: auto; }
+@media (max-width: 800px) { .composition { grid-template-columns: 1fr; } }
+.swatch { width: .8rem; height: .8rem; border-radius: 3px; }
 .info { color: var(--muted); font-size: 18px !important; vertical-align: -3px; cursor: help; }
 .icon-link .material-symbols-rounded { font-size: 18px; vertical-align: -3px; }
 .care-list { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; }

@@ -44,3 +44,9 @@ export const FIBERS = {
 
 // [{fiber, percent}] -> '95% Cotton, 5% Elastane'
 export const formatComposition = (parts) => (parts ?? []).map((p) => `${p.percent}% ${FIBERS[p.fiber]}`).join(', ')
+
+// One fixed color per fiber, used in the composition bar and its legend.
+export const FIBER_COLORS = {
+  Cotton: '#8a5a2b', Polyester: '#3d7ea6', Elastane: '#c9a227', Viscose: '#6b8e23', Polyamide: '#a0522d',
+  Wool: '#7b5ea7', Linen: '#2e8b78', Silk: '#c0606b', Other: '#777',
+}

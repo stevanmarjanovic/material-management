@@ -1,6 +1,7 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
-import { CARE, FIBERS, NEEDLE_TYPES, NEEDLE_SIZES } from '../catalog.js'
+import { reactive, ref, watch } from 'vue'
+import { CARE, FIBERS, FIBER_COLORS, NEEDLE_TYPES, NEEDLE_SIZES } from '../catalog.js'
+import FiberSlider from './FiberSlider.vue'
 import PriceTag from './PriceTag.vue'
 import IconButton from './IconButton.vue'
 
@@ -16,14 +17,28 @@ const f = reactive({
   ...Object.fromEntries(Object.entries(props.initial).map(([k, v]) => [k, v ?? ''])),
   composition: (props.initial.composition ?? []).map((p) => ({ ...p })), // copy, so Cancel leaves the material untouched
 })
-const compositionSum = computed(() => f.composition.reduce((s, p) => s + (p.percent || 0), 0))
-const compositionError = computed(() => {
-  if (!f.composition.length) return ''
-  if (new Set(f.composition.map((p) => p.fiber)).size !== f.composition.length) return 'Each fiber only once.'
-  return Math.abs(compositionSum.value - 100) > 0.01 ? `Adds up to ${compositionSum.value}%, needs 100%.` : ''
-})
-const addFiber = () =>
-  f.composition.push({ fiber: Object.keys(FIBERS).find((k) => !f.composition.some((p) => p.fiber === k)) ?? 'Other', percent: Math.max(0, 100 - compositionSum.value) })
+// Composition always adds up to 100 %: a newly checked fiber takes half of the largest share,
+// an unchecked fiber's share goes to the largest remaining one.
+const FIBER_ORDER = Object.keys(FIBERS)
+const share = (fiber) => f.composition.find((p) => p.fiber === fiber)?.percent
+const largest = () => f.composition.reduce((a, b) => (b.percent > a.percent ? b : a))
+function toggleFiber(fiber) {
+  const i = f.composition.findIndex((p) => p.fiber === fiber)
+  if (i >= 0) {
+    const [gone] = f.composition.splice(i, 1)
+    if (f.composition.length) largest().percent += gone.percent
+    return
+  }
+  let percent = 100
+  if (f.composition.length) {
+    const big = largest()
+    if (big.percent < 2) return // nothing left to split
+    percent = Math.floor(big.percent / 2)
+    big.percent -= percent
+  }
+  f.composition.push({ fiber, percent })
+  f.composition.sort((a, b) => FIBER_ORDER.indexOf(a.fiber) - FIBER_ORDER.indexOf(b.fiber))
+}
 const photo = ref(null)
 
 // Live price preview, calculated by the API (same formula as a saved material).
@@ -71,16 +86,29 @@ function submit() {
 
     <fieldset>
       <legend>Composition</legend>
-      <div v-for="(p, i) in f.composition" :key="i" class="fiber-row">
-        <select v-model="p.fiber" aria-label="Fiber">
-          <option v-for="(text, v) in FIBERS" :key="v" :value="v">{{ text }}</option>
-        </select>
-        <input v-model.number="p.percent" type="number" step="0.1" min="0.1" max="100" aria-label="Percent" /> %
-        <IconButton icon="remove" label="Remove fiber" type="button" @click="f.composition.splice(i, 1)" />
-      </div>
-      <div class="fiber-row">
-        <IconButton icon="add" label="Add fiber" type="button" @click="addFiber" />
-        <span v-if="compositionError" class="error-text">{{ compositionError }}</span>
+      <div class="composition">
+        <!-- Left: fibers not in this fabric yet -->
+        <ul class="fiber-list">
+          <template v-for="(text, v) in FIBERS" :key="v">
+            <li v-if="share(v) == null">
+              {{ text }}
+              <IconButton icon="add" :label="`Add ${text}`" type="button" @click="toggleFiber(v)" />
+            </li>
+          </template>
+        </ul>
+        <!-- Right: the ratio slider and the fibers in this fabric -->
+        <div>
+          <p v-if="!f.composition.length" class="muted">Add the fibers this fabric is made of.</p>
+          <FiberSlider v-else v-model="f.composition" />
+          <ul class="fiber-list">
+            <li v-for="p in f.composition" :key="p.fiber">
+              <span class="swatch" :style="{ background: FIBER_COLORS[p.fiber] }" />
+              {{ FIBERS[p.fiber] }}
+              <strong>{{ p.percent }}%</strong>
+              <IconButton icon="remove" :label="`Remove ${FIBERS[p.fiber]}`" type="button" @click="toggleFiber(p.fiber)" />
+            </li>
+          </ul>
+        </div>
       </div>
     </fieldset>
 
@@ -124,7 +152,7 @@ function submit() {
     </fieldset>
 
     <div class="actions">
-      <IconButton icon="check" label="Save" type="submit" class="primary" :disabled="!!compositionError" />
+      <IconButton icon="check" label="Save" type="submit" class="primary" />
       <IconButton icon="close" label="Cancel" type="button" @click="emit('cancel')" />
     </div>
   </form>
