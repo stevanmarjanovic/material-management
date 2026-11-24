@@ -75,6 +75,23 @@ public static class Fibers
             .ToList();
 }
 
+/// <summary>A shop where materials are bought.</summary>
+public class Store
+{
+    public int Id { get; set; }
+    public required string Name { get; set; }
+    public string? Address { get; set; }
+    public string? Website { get; set; }
+    public string? WorkingHours { get; set; } // free text, e.g. "Mon-Fri 9-17, Sat 9-14"
+    // Link to one purchase on the store's site: "{id}" is replaced by the purchase's ID, e.g. https://shop.rs/orders/{id}
+    public string? PurchaseUrlTemplate { get; set; }
+
+    public const string IdToken = "{id}";
+    public string? PurchaseUrl(string? purchaseId) =>
+        string.IsNullOrWhiteSpace(PurchaseUrlTemplate) || string.IsNullOrWhiteSpace(purchaseId) ? null
+        : PurchaseUrlTemplate.Replace(IdToken, Uri.EscapeDataString(purchaseId.Trim()));
+}
+
 /// <summary>A fabric (one name + color, bought in one store). Each purchase of it adds a piece.</summary>
 public class Material
 {
@@ -93,7 +110,8 @@ public class Material
     public DryClean? DryClean { get; set; }
     public TumbleDry? TumbleDry { get; set; }
     public string? Link { get; set; }
-    public string? Store { get; set; }
+    public int? StoreId { get; set; }
+    public Store? Store { get; set; }
     public byte[]? Photo { get; set; }
     public string? PhotoContentType { get; set; }
     public string? PreviewColor { get; set; } // average photo color, #rrggbb
@@ -112,6 +130,7 @@ public class Purchase
     public decimal? PricePerMeter { get; set; }
     public decimal? DiscountPercent { get; set; }
     public DateOnly? PurchaseDate { get; set; }
+    public string? StorePurchaseId { get; set; } // the store's order/receipt number; with the store's template it links to the purchase
 
     public decimal? FinalPricePerMeter => PricePerMeter * (1 - (DiscountPercent ?? 0) / 100);
     public decimal? TotalPrice => FinalPricePerMeter * (decimal)LengthCm / 100;
@@ -172,6 +191,7 @@ public class Db(DbContextOptions<Db> options) : DbContext(options)
 
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<Purchase> Purchases => Set<Purchase>();
+    public DbSet<Store> Stores => Set<Store>();
     public DbSet<Piece> Pieces => Set<Piece>();
     public DbSet<Cut> Cuts => Set<Cut>();
     public DbSet<Project> Projects => Set<Project>();
@@ -187,6 +207,7 @@ public class Db(DbContextOptions<Db> options) : DbContext(options)
         var pu = b.Entity<Purchase>();
         pu.Property(x => x.PricePerMeter).HasConversion<double?>(); // SQLite can't sort/sum decimal
         pu.Property(x => x.DiscountPercent).HasConversion<double?>();
+        m.HasOne(x => x.Store).WithMany().OnDelete(DeleteBehavior.SetNull); // deleting a store keeps its materials
         b.Entity<Piece>().HasOne<Purchase>().WithMany().HasForeignKey(x => x.PurchaseId).OnDelete(DeleteBehavior.Restrict);
         b.Entity<Cut>().HasOne(c => c.Purchase).WithMany().HasForeignKey(x => x.PurchaseId).OnDelete(DeleteBehavior.Restrict);
         var p = b.Entity<Project>();

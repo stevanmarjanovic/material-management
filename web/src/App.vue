@@ -5,16 +5,19 @@ import CareIcon from './components/CareIcon.vue'
 import IconButton from './components/IconButton.vue'
 import MaterialForm from './components/MaterialForm.vue'
 import ProjectForm from './components/ProjectForm.vue'
+import StoreForm from './components/StoreForm.vue'
 import PieceShape from './components/PieceShape.vue'
 import PriceTag from './components/PriceTag.vue'
 import PurchaseRow from './components/PurchaseRow.vue'
 import { currency } from './settings.js'
 
-const tab = ref('materials') // 'materials' | 'projects'
+const tab = ref('materials') // 'materials' | 'projects' | 'stores'
 const materials = ref([])
 const projects = ref([])
+const stores = ref([])
 const selectedId = ref(null)
 const projectId = ref(null)
+const storeId = ref(null)
 const editing = ref(null) // object passed to MaterialForm / ProjectForm, or null
 const pieceId = ref(null)
 const purchaseEditing = ref(null) // purchase being edited inline ({} = new row), or null
@@ -30,6 +33,7 @@ const CARE_HELP = 'The most delicate fabric sets the limit: lowest wash temperat
 
 const selected = computed(() => materials.value.find((m) => m.id === selectedId.value))
 const project = computed(() => projects.value.find((p) => p.id === projectId.value))
+const store = computed(() => stores.value.find((s) => s.id === storeId.value))
 const piece = computed(() => selected.value?.pieces.find((p) => p.id === pieceId.value))
 const m2 = (cm2) => (cm2 / 10000).toFixed(2)
 const money = (v) => (v == null ? '–' : v.toFixed(2))
@@ -51,6 +55,7 @@ async function api(method, url, body) {
 
 const loadMaterials = async () => (materials.value = await api('GET', '/materials'))
 const loadProjects = async () => (projects.value = await api('GET', '/projects'))
+const loadStores = async () => (stores.value = await api('GET', '/stores'))
 function replace(list, item) {
   const i = list.value.findIndex((x) => x.id === item.id)
   if (i < 0) list.value.push(item)
@@ -77,6 +82,8 @@ function select(id) {
 }
 
 async function saveMaterial(body, photo) {
+  // "+ New store" in the form: create the store first, then link the material to it.
+  if (body.newStoreName) body.storeId = (await api('POST', '/stores', { name: body.newStoreName })).id
   let m = body.id ? await api('PUT', `/materials/${body.id}`, body) : await api('POST', '/materials', body)
   if (photo) {
     await uploadPhoto('materials', m.id, photo)
@@ -85,6 +92,7 @@ async function saveMaterial(body, photo) {
   replace(materials, m)
   select(m.id)
   loadProjects() // costs may have changed
+  loadStores() // material lists per store
 }
 
 function duplicate() {
@@ -157,7 +165,31 @@ async function removeProject() {
   loadMaterials()
 }
 
-onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
+// --- Stores ---
+
+function selectStore(id) {
+  showSettings.value = false
+  tab.value = 'stores'
+  storeId.value = id
+  editing.value = null
+}
+
+async function saveStore(body) {
+  const s = body.id ? await api('PUT', `/stores/${body.id}`, body) : await api('POST', '/stores', body)
+  replace(stores, s)
+  selectStore(s.id)
+  loadMaterials() // store names and purchase links on materials
+}
+
+async function removeStore() {
+  if (!confirm(`Delete store "${store.value.name}"? Its materials stay, without a store.`)) return
+  await api('DELETE', `/stores/${storeId.value}`)
+  stores.value = stores.value.filter((s) => s.id !== storeId.value)
+  selectStore(null)
+  loadMaterials()
+}
+
+onMounted(() => Promise.all([loadMaterials(), loadProjects(), loadStores()]))
 </script>
 
 <template>
@@ -166,6 +198,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
       <div class="tabs">
         <button :class="{ active: tab === 'materials' }" @click="tab = 'materials'; editing = null; showSettings = false">Materials</button>
         <button :class="{ active: tab === 'projects' }" @click="tab = 'projects'; editing = null; showSettings = false">Projects</button>
+        <button :class="{ active: tab === 'stores' }" @click="tab = 'stores'; editing = null; showSettings = false">Stores</button>
       </div>
 
       <template v-if="tab === 'materials'">
@@ -182,7 +215,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
         <p v-if="!materials.length" class="muted">No materials yet.</p>
       </template>
 
-      <template v-else>
+      <template v-else-if="tab === 'projects'">
         <ul>
           <li v-for="p in projects" :key="p.id" :class="{ active: p.id === projectId }" @click="selectProject(p.id)">
             <img v-if="p.hasPhoto" :src="`/api/projects/${p.id}/photo?v=${photoVersion}`" alt="" class="thumb" />
@@ -196,10 +229,23 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
         <p v-if="!projects.length" class="muted">No projects yet.</p>
       </template>
 
+      <template v-else>
+        <ul>
+          <li v-for="s in stores" :key="s.id" :class="{ active: s.id === storeId }" @click="selectStore(s.id)">
+            <span>
+              <strong>{{ s.name }}</strong><br />
+              <small>{{ s.address }}</small>
+            </span>
+          </li>
+        </ul>
+        <p v-if="!stores.length" class="muted">No stores yet.</p>
+      </template>
+
       <div class="aside-footer">
         <IconButton icon="settings" label="Settings" class="light" :class="{ active: showSettings }" @click="showSettings = true" />
         <IconButton v-if="tab === 'materials'" icon="add" label="New material" text="New" class="primary" @click="select(null); editing = {}" />
-        <IconButton v-else icon="add" label="New project" text="New" class="primary" @click="selectProject(null); editing = {}" />
+        <IconButton v-else-if="tab === 'projects'" icon="add" label="New project" text="New" class="primary" @click="selectProject(null); editing = {}" />
+        <IconButton v-else icon="add" label="New store" text="New" class="primary" @click="selectStore(null); editing = {}" />
       </div>
     </aside>
 
@@ -217,7 +263,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
 
       <!-- ===== Materials ===== -->
       <template v-else-if="tab === 'materials'">
-        <MaterialForm v-if="editing" :key="editing.id ?? 'new'" :initial="editing" @save="saveMaterial" @cancel="editing = null" />
+        <MaterialForm v-if="editing" :key="editing.id ?? 'new'" :initial="editing" :stores="stores" @save="saveMaterial" @cancel="editing = null" />
 
         <template v-else-if="selected">
           <section class="card head">
@@ -232,9 +278,12 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                   ['Color', selected.color], ['Composition', formatComposition(selected.composition)],
                   ['Roll width', selected.rollWidthCm && `${selected.rollWidthCm} cm`],
                   ['Weight', selected.weightGsm && `${selected.weightGsm} g/m²`], ['Certificate', selected.certificate],
-                  ['Store', selected.store],
                 ]" :key="k">
                   <template v-if="v"><dt>{{ k }}</dt><dd>{{ v }}</dd></template>
+                </template>
+                <template v-if="selected.storeId">
+                  <dt>Store</dt>
+                  <dd><a href="#" @click.prevent="selectStore(selected.storeId)">{{ selected.storeName }}</a></dd>
                 </template>
                 <template v-if="selected.needleType || selected.needleSize">
                   <dt>Needle</dt>
@@ -263,7 +312,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
             <table v-if="selected.purchases.length || purchaseEditing" class="purchases">
               <tr>
                 <th>Date</th><th class="num">Length (cm)</th><th class="num">Price ({{ currency }}/m)</th>
-                <th class="num">Discount (%)</th><th class="num">Total ({{ currency }})</th><th />
+                <th class="num">Discount (%)</th><th class="num">Total ({{ currency }})</th><th>Purchase ID</th><th />
               </tr>
               <template v-for="p in selected.purchases" :key="p.id">
                 <PurchaseRow v-if="purchaseEditing?.id === p.id" :initial="purchaseEditing" @save="savePurchase" @cancel="purchaseEditing = null" />
@@ -273,6 +322,10 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                   <td class="num"><PriceTag v-if="p.pricePerMeter != null" :price="p.pricePerMeter" :final="p.finalPricePerMeter" :discount="p.discountPercent" /></td>
                   <td class="num">{{ p.discountPercent || '' }}</td>
                   <td class="num">{{ money(p.totalPrice) }}</td>
+                  <td>
+                    <a v-if="p.url" :href="p.url" target="_blank" rel="noopener" title="Open this purchase in the store">{{ p.storePurchaseId }}</a>
+                    <template v-else>{{ p.storePurchaseId }}</template>
+                  </td>
                   <td class="action">
                     <div class="actions">
                       <IconButton icon="edit" label="Edit purchase" class="plain" @click="purchaseEditing = { ...p }" />
@@ -352,7 +405,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
       </template>
 
       <!-- ===== Projects ===== -->
-      <template v-else>
+      <template v-else-if="tab === 'projects'">
         <ProjectForm v-if="editing" :key="editing.id ?? 'new'" :initial="editing" @save="saveProject" @cancel="editing = null" />
 
         <template v-else-if="project">
@@ -447,6 +500,43 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
         </template>
 
         <p v-else class="muted">Select a project or add a new one.</p>
+      </template>
+
+      <!-- ===== Stores ===== -->
+      <template v-else>
+        <StoreForm v-if="editing" :key="editing.id ?? 'new'" :initial="editing" @save="saveStore" @cancel="editing = null" />
+
+        <template v-else-if="store">
+          <section class="card head">
+            <div class="grow">
+              <h2>
+                <a v-if="store.website" :href="store.website" target="_blank" rel="noopener" title="Open the store's website in new tab">{{ store.name }}</a>
+                <template v-else>{{ store.name }}</template>
+              </h2>
+              <dl>
+                <template v-if="store.address"><dt>Address</dt><dd>{{ store.address }}</dd></template>
+                <template v-if="store.workingHours"><dt>Working hours</dt><dd class="notes">{{ store.workingHours }}</dd></template>
+                <template v-if="store.purchaseUrlTemplate"><dt>Purchase link</dt><dd>{{ store.purchaseUrlTemplate }}</dd></template>
+              </dl>
+            </div>
+            <div class="actions col">
+              <IconButton icon="edit" label="Edit" @click="editing = { ...store }" />
+              <IconButton icon="delete" label="Delete" class="danger" @click="removeStore" />
+            </div>
+          </section>
+
+          <section class="card">
+            <h3>Materials</h3>
+            <p v-if="!store.materials.length" class="muted">No materials from this store yet.</p>
+            <ul v-else class="link-list">
+              <li v-for="m in store.materials" :key="m.id">
+                <a href="#" @click.prevent="select(m.id)">{{ m.name }}</a> <small class="muted">{{ m.color }}</small>
+              </li>
+            </ul>
+          </section>
+        </template>
+
+        <p v-else class="muted">Select a store or add a new one.</p>
       </template>
     </main>
   </div>

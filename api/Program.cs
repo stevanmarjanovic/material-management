@@ -23,11 +23,12 @@ var api = app.MapGroup("/api");
 object View(Material m) => new
 {
     m.Id, m.Name, m.Color, m.Composition, m.RollWidthCm, m.WeightGsm, m.NeedleType, m.NeedleSize,
-    m.Certificate, m.Wash, m.Bleach, m.Iron, m.DryClean, m.TumbleDry, m.Link, m.Store,
+    m.Certificate, m.Wash, m.Bleach, m.Iron, m.DryClean, m.TumbleDry, m.Link, m.StoreId, StoreName = m.Store?.Name,
     HasPhoto = m.Photo != null, m.PreviewColor,
     Purchases = m.Purchases.OrderBy(p => p.PurchaseDate).ThenBy(p => p.Id).Select(p => new
     {
         p.Id, p.LengthCm, p.PricePerMeter, p.DiscountPercent, p.FinalPricePerMeter, p.TotalPrice, p.PurchaseDate,
+        p.StorePurchaseId, Url = m.Store?.PurchaseUrl(p.StorePurchaseId),
         Cut = m.Cuts.Any(c => c.PurchaseId == p.Id), // once cut: length is fixed and it can't be deleted
     }),
     Pieces = m.Pieces.Where(p => p.Active).OrderBy(p => p.Id).Select(p => new { p.Id, p.PurchaseId, p.Shape, Area = Geometry.Area(p.Shape) }),
@@ -40,7 +41,7 @@ object View(Material m) => new
 };
 
 IQueryable<Material> Full(Db db) =>
-    db.Materials.Include(m => m.Purchases).Include(m => m.Pieces).Include(m => m.Cuts).ThenInclude(c => c.Project);
+    db.Materials.Include(m => m.Store).Include(m => m.Purchases).Include(m => m.Pieces).Include(m => m.Cuts).ThenInclude(c => c.Project);
 
 api.MapGet("/materials", async (Db db) =>
     (await Full(db).OrderBy(m => m.Name).ToListAsync()).Select(View));
@@ -52,6 +53,7 @@ api.MapPost("/materials", async (MaterialInput input, Db db) =>
 {
     if (input.Validate() is { } error) return Results.BadRequest(error);
     if (input.RollWidthCm is not > 0) return Results.BadRequest("Roll width must be > 0.");
+    if (input.StoreId is { } sid && await db.Stores.FindAsync(sid) == null) return Results.BadRequest("Store not found.");
     var m = new Material { Name = input.Name };
     input.Apply(m);
     db.Materials.Add(m);
@@ -64,11 +66,13 @@ api.MapPut("/materials/{id:int}", async (int id, MaterialInput input, Db db) =>
     if (input.Validate() is { } error) return Results.BadRequest(error);
     var m = await Full(db).FirstOrDefaultAsync(m => m.Id == id);
     if (m == null) return Results.NotFound();
+    if (input.StoreId is { } sid && await db.Stores.FindAsync(sid) == null) return Results.BadRequest("Store not found.");
     // The roll width is the width of every bought piece, so it can only change while nothing is cut.
     var uncut = m.Cuts.Count == 0;
     if (input.RollWidthCm != m.RollWidthCm && !uncut) return Results.BadRequest("Roll width can't change after the first cut.");
     if (input.RollWidthCm is not > 0) return Results.BadRequest("Roll width must be > 0.");
     input.Apply(m);
+    await db.Entry(m).Reference(x => x.Store).LoadAsync(); // new store name for the response
     if (uncut)
         foreach (var piece in m.Pieces)
             piece.Shape = [new Rect(0, 0, input.RollWidthCm.Value, m.Purchases.First(p => p.Id == piece.PurchaseId).LengthCm)];
@@ -158,6 +162,52 @@ static async Task<byte[]?> ReadPhoto(IFormFile file)
     await file.CopyToAsync(ms);
     return ms.ToArray();
 }
+
+// --- Stores ---
+
+object StoreView(Store s, IEnumerable<Material> materials) => new
+{
+    s.Id, s.Name, s.Address, s.Website, s.WorkingHours, s.PurchaseUrlTemplate,
+    Materials = materials.OrderBy(m => m.Name).ThenBy(m => m.Color).Select(m => new { m.Id, m.Name, m.Color }),
+};
+
+async Task<object?> LoadStore(int id, Db db) =>
+    await db.Stores.FindAsync(id) is { } s ? StoreView(s, await db.Materials.Where(m => m.StoreId == id).ToListAsync()) : null;
+
+api.MapGet("/stores", async (Db db) =>
+{
+    var materials = await db.Materials.Where(m => m.StoreId != null).ToListAsync();
+    return (await db.Stores.OrderBy(s => s.Name).ToListAsync()).Select(s => StoreView(s, materials.Where(m => m.StoreId == s.Id)));
+});
+
+api.MapGet("/stores/{id:int}", async (int id, Db db) => await LoadStore(id, db) is { } v ? Results.Ok(v) : Results.NotFound());
+
+api.MapPost("/stores", async (StoreInput input, Db db) =>
+{
+    if (input.Validate() is { } error) return Results.BadRequest(error);
+    var s = new Store { Name = input.Name };
+    input.Apply(s);
+    db.Stores.Add(s);
+    await db.SaveChangesAsync();
+    return Results.Ok(await LoadStore(s.Id, db));
+});
+
+api.MapPut("/stores/{id:int}", async (int id, StoreInput input, Db db) =>
+{
+    if (input.Validate() is { } error) return Results.BadRequest(error);
+    var s = await db.Stores.FindAsync(id);
+    if (s == null) return Results.NotFound();
+    input.Apply(s);
+    await db.SaveChangesAsync();
+    return Results.Ok(await LoadStore(id, db));
+});
+
+// Materials of a deleted store are kept, just without a store.
+api.MapDelete("/stores/{id:int}", async (int id, Db db) =>
+{
+    await db.Materials.Where(m => m.StoreId == id).ExecuteUpdateAsync(s => s.SetProperty(m => m.StoreId, (int?)null));
+    return await db.Stores.Where(s => s.Id == id).ExecuteDeleteAsync() > 0 ? Results.NoContent() : Results.NotFound();
+});
 
 // --- Projects ---
 
@@ -313,7 +363,26 @@ public record ProjectInput(
     }
 }
 
-public record PurchaseInput(double LengthCm, decimal? PricePerMeter, decimal? DiscountPercent, DateOnly? PurchaseDate)
+public record StoreInput(string Name, string? Address, string? Website, string? WorkingHours, string? PurchaseUrlTemplate)
+{
+    static bool IsWebUrl(string? s) =>
+        Uri.TryCreate(s, UriKind.Absolute, out var u) && (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps);
+
+    public string? Validate() =>
+        string.IsNullOrWhiteSpace(Name) ? "Name is required."
+        : !string.IsNullOrWhiteSpace(Website) && !IsWebUrl(Website) ? "Website must start with http:// or https://."
+        : string.IsNullOrWhiteSpace(PurchaseUrlTemplate) ? null
+        : !PurchaseUrlTemplate.Contains(Store.IdToken) ? "Purchase link must contain {id} where the purchase ID goes."
+        : !IsWebUrl(PurchaseUrlTemplate.Replace(Store.IdToken, "1")) ? "Purchase link must start with http:// or https://."
+        : null;
+
+    static string? Clean(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+    public void Apply(Store s) =>
+        (s.Name, s.Address, s.Website, s.WorkingHours, s.PurchaseUrlTemplate) =
+        (Name.Trim(), Clean(Address), Clean(Website), Clean(WorkingHours), Clean(PurchaseUrlTemplate));
+}
+
+public record PurchaseInput(double LengthCm, decimal? PricePerMeter, decimal? DiscountPercent, DateOnly? PurchaseDate, string? StorePurchaseId)
 {
     public string? Validate() =>
         LengthCm <= 0 ? "Length must be > 0."
@@ -322,13 +391,14 @@ public record PurchaseInput(double LengthCm, decimal? PricePerMeter, decimal? Di
         : null;
 
     public void Apply(Purchase p) =>
-        (p.LengthCm, p.PricePerMeter, p.DiscountPercent, p.PurchaseDate) = (LengthCm, PricePerMeter, DiscountPercent, PurchaseDate);
+        (p.LengthCm, p.PricePerMeter, p.DiscountPercent, p.PurchaseDate, p.StorePurchaseId) =
+        (LengthCm, PricePerMeter, DiscountPercent, PurchaseDate, string.IsNullOrWhiteSpace(StorePurchaseId) ? null : StorePurchaseId.Trim());
 }
 
 public record MaterialInput(
     string Name, string? Color, List<FiberPart>? Composition, double? RollWidthCm, int? WeightGsm,
     string? NeedleType, int? NeedleSize, string? Certificate, Wash? Wash, Bleach? Bleach, Iron? Iron,
-    DryClean? DryClean, TumbleDry? TumbleDry, string? Link, string? Store)
+    DryClean? DryClean, TumbleDry? TumbleDry, string? Link, int? StoreId)
 {
     public string? Validate() =>
         string.IsNullOrWhiteSpace(Name) ? "Name is required."
@@ -339,6 +409,6 @@ public record MaterialInput(
         m.Name = Name.Trim(); m.Color = Color; m.Composition = Composition is { Count: > 0 } ? Composition : null; m.RollWidthCm = RollWidthCm;
         m.WeightGsm = WeightGsm; m.NeedleType = NeedleType; m.NeedleSize = NeedleSize; m.Certificate = Certificate;
         m.Wash = Wash; m.Bleach = Bleach; m.Iron = Iron; m.DryClean = DryClean; m.TumbleDry = TumbleDry;
-        m.Link = Link; m.Store = Store;
+        m.Link = Link; m.StoreId = StoreId;
     }
 }

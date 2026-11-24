@@ -98,6 +98,7 @@ tr.total td { font-weight: 600; border-bottom: none; }
 .icon-btn.plain .material-symbols-rounded { font-size: 18px; }
 .icon-btn.plain.danger { color: var(--danger); }
 .add-purchase { margin-top: .75rem; }
+.link-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .35rem; }
 /* Inline edit row: inputs fill their cells, numbers right-aligned like the values they replace. */
 .edit-row input { width: 100%; padding: .2rem .4rem; }
 .edit-row td.num input { text-align: right; }

@@ -117,8 +117,8 @@ namespace MaterialManagement.Api.Migrations
                     b.Property<double?>("RollWidthCm")
                         .HasColumnType("REAL");
 
-                    b.Property<string>("Store")
-                        .HasColumnType("TEXT");
+                    b.Property<int?>("StoreId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("TumbleDry")
                         .HasColumnType("TEXT");
@@ -130,6 +130,8 @@ namespace MaterialManagement.Api.Migrations
                         .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("StoreId");
 
                     b.ToTable("Materials");
                 });
@@ -229,11 +231,41 @@ namespace MaterialManagement.Api.Migrations
                     b.Property<DateOnly?>("PurchaseDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("StorePurchaseId")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("MaterialId");
 
                     b.ToTable("Purchases");
+                });
+
+            modelBuilder.Entity("MaterialManagement.Api.Store", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Address")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PurchaseUrlTemplate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Website")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WorkingHours")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Stores");
                 });
 
             modelBuilder.Entity("MaterialManagement.Api.Cut", b =>
@@ -260,6 +292,16 @@ namespace MaterialManagement.Api.Migrations
                     b.Navigation("Project");
 
                     b.Navigation("Purchase");
+                });
+
+            modelBuilder.Entity("MaterialManagement.Api.Material", b =>
+                {
+                    b.HasOne("MaterialManagement.Api.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Store");
                 });
 
             modelBuilder.Entity("MaterialManagement.Api.Piece", b =>

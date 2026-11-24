@@ -6,12 +6,12 @@ import CareIcon from './CareIcon.vue'
 import IconButton from './IconButton.vue'
 
 // `initial` is an existing material (edit), a copy without id (duplicate), or {} (new).
-const props = defineProps({ initial: Object })
+const props = defineProps({ initial: Object, stores: Array })
 const emit = defineEmits(['save', 'cancel'])
 const isNew = !props.initial.id
 const f = reactive({
   name: '', color: '', rollWidthCm: '', weightGsm: '', needleType: '', needleSize: '',
-  certificate: '', wash: '', bleach: '', iron: '', dryClean: '', tumbleDry: '', link: '', store: '',
+  certificate: '', wash: '', bleach: '', iron: '', dryClean: '', tumbleDry: '', link: '', storeId: '', newStoreName: '',
   // nulls -> '' so the empty select option shows
   ...Object.fromEntries(Object.entries(props.initial).map(([k, v]) => [k, v ?? ''])),
   composition: (props.initial.composition ?? []).map((p) => ({ ...p })), // copy, so Cancel leaves the material untouched
@@ -44,6 +44,9 @@ const widthLocked = !!props.initial.cuts?.length // first piece is already cut
 function submit() {
   // Empty strings -> null so enums and numbers deserialize on the server.
   const body = Object.fromEntries(Object.entries(f).map(([k, v]) => [k, v === '' ? null : v]))
+  // "new" = create a store by name first (App does that), otherwise keep only the chosen store id
+  if (body.storeId === 'new') body.storeId = null
+  else body.newStoreName = null
   emit('save', body, photo.value)
 }
 </script>
@@ -63,7 +66,14 @@ function submit() {
       <label>Weight (g/m²)<input v-model.number="f.weightGsm" type="number" min="0" /></label>
       <label>Certificate<input v-model="f.certificate" placeholder="OEKO-TEX STANDARD 100" /></label>
       <label>Link<input v-model="f.link" type="url" /></label>
-      <label>Store<input v-model="f.store" /></label>
+      <label>Store
+        <select v-model="f.storeId">
+          <option value="">–</option>
+          <option v-for="s in stores" :key="s.id" :value="s.id">{{ s.name }}</option>
+          <option value="new">+ New store…</option>
+        </select>
+      </label>
+      <label v-if="f.storeId === 'new'">New store name *<input v-model="f.newStoreName" required /></label>
       <label>Photo<input type="file" accept="image/*" @change="photo = $event.target.files[0]" /></label>
     </fieldset>
 

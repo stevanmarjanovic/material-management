@@ -22,6 +22,12 @@ A small inventory app for hobby sewing. Keep track of the fabrics you buy, see t
 - A cut must lie fully on the fabric. If it splits a piece in two, each part becomes its own piece.
 - A cut log records each cut's size, position, label and project. The last cut can be undone.
 
+**Stores**
+- Name, address, website, working hours, and a purchase link template such as `https://shop.rs/orders/{id}`.
+- Each material is bought in one store (picked from a list, or created by name from the material form).
+- A purchase can have the store's order ID; with the template it links straight to that purchase on the store's site.
+- The store page lists its materials. Deleting a store keeps its materials, without a store.
+
 **Projects**
 - Name, status (planned / in progress / done), start date, notes and a photo.
 - Cuts can belong to a project, or to no project at all.
