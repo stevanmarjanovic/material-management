@@ -45,8 +45,8 @@ function submit() {
       </label>
     </fieldset>
     <div class="actions">
-      <IconButton icon="check" label="Save" type="submit" class="primary" />
-      <IconButton icon="close" label="Cancel" type="button" @click="emit('cancel')" />
+      <IconButton icon="save" label="Save" text="Save" type="submit" class="primary" />
+      <IconButton icon="close" label="Cancel" text="Cancel" type="button" @click="emit('cancel')" />
     </div>
   </form>
 </template>

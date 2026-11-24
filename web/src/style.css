@@ -79,6 +79,9 @@ tr.total td { font-weight: 600; border-bottom: none; }
 .care-option.selected { opacity: 1; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; padding: .3rem; }
 .icon-btn .material-symbols-rounded { font-size: 20px; }
+/* line-height 1 on both parts: icon and text boxes are then the same height, so they center on each other */
+.icon-btn.with-text { gap: .35rem; padding: .4rem .7rem .4rem .5rem; line-height: 1; }
+.actions.halves > * { flex: 1; } /* two buttons, 50/50, content centered */
 /* Icon only, no button box: fits a table row without making it taller. */
 .icon-btn.plain { padding: 0; border: 0; background: none; color: var(--accent); }
 .icon-btn.plain .material-symbols-rounded { font-size: 18px; }

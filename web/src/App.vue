@@ -184,8 +184,8 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
 
       <div class="aside-footer">
         <IconButton icon="settings" label="Settings" :class="{ active: showSettings }" @click="showSettings = true" />
-        <IconButton v-if="tab === 'materials'" icon="add" label="New material" class="primary" @click="select(null); editing = {}" />
-        <IconButton v-else icon="add" label="New project" class="primary" @click="selectProject(null); editing = {}" />
+        <IconButton v-if="tab === 'materials'" icon="add" label="New material" text="New" class="primary" @click="select(null); editing = {}" />
+        <IconButton v-else icon="add" label="New project" text="New" class="primary" @click="selectProject(null); editing = {}" />
       </div>
     </aside>
 
@@ -284,10 +284,12 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                     </select>
                   </label>
                   <label>Label<input v-model="cutLabel" placeholder="e.g. skirt front" /></label>
-                  <IconButton icon="content_cut" label="Save cut" type="submit" class="primary" :disabled="!(cut.w > 0 && cut.h > 0)" />
-                  <IconButton icon="close" label="Clear" type="button" @click="cut = null" />
+                  <div class="actions halves">
+                    <IconButton icon="content_cut" label="Save cut" text="Cut" type="submit" class="primary" :disabled="!(cut.w > 0 && cut.h > 0)" />
+                    <IconButton icon="close" label="Cancel cut" text="Cancel" type="button" @click="cut = null" />
+                  </div>
                 </template>
-                <IconButton v-else icon="keyboard" label="Enter numbers instead" type="button" @click="cut = { x: 0, y: 0, w: 0, h: 0 }" />
+                <IconButton v-else icon="keyboard" label="Enter numbers instead" text="Enter manually" type="button" @click="cut = { x: 0, y: 0, w: 0, h: 0 }" />
               </form>
             </div>
           </section>
