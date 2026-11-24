@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { CARE, NEEDLE_TYPES, NEEDLE_SIZES, PROJECT_STATUS } from './catalog.js'
+import { CARE, FIBERS, NEEDLE_TYPES, NEEDLE_SIZES, PROJECT_STATUS, formatComposition } from './catalog.js'
 import CareIcon from './components/CareIcon.vue'
 import MaterialForm from './components/MaterialForm.vue'
 import ProjectForm from './components/ProjectForm.vue'
@@ -237,7 +237,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
               <h2>{{ selected.name }}</h2>
               <dl>
                 <template v-for="[k, v] in [
-                  ['Color', selected.color], ['Composition', selected.composition],
+                  ['Color', selected.color], ['Composition', formatComposition(selected.composition)],
                   ['Bought', `${selected.lengthCm} cm × ${selected.rollWidthCm} cm roll`],
                   ['Weight', selected.weightGsm && `${selected.weightGsm} g/m²`], ['Certificate', selected.certificate],
                   ['Store', selected.store], ['Purchased', selected.purchaseDate],
@@ -373,6 +373,22 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                 <td class="num">{{ money(sum(project.cuts, 'cost')) }}</td>
               </tr>
             </table>
+          </section>
+
+          <section v-if="project.fibers.length" class="card">
+            <h3>Fiber composition</h3>
+            <p class="muted">By weight: cut area × g/m² × fiber %.</p>
+            <table>
+              <tr><th>Fiber</th><th class="num">Grams</th><th class="num">%</th></tr>
+              <tr v-for="fb in project.fibers" :key="fb.fiber">
+                <td>{{ FIBERS[fb.fiber] }}</td>
+                <td class="num">{{ fb.grams.toFixed(1) }}</td>
+                <td class="num">{{ (fb.grams / sum(project.fibers, 'grams') * 100).toFixed(1) }}</td>
+              </tr>
+            </table>
+            <p v-if="project.uncountedCuts" class="muted">
+              {{ project.uncountedCuts }} cut(s) not counted: their material has no g/m² or no composition.
+            </p>
           </section>
 
           <section v-if="project.cuts.length" class="card">

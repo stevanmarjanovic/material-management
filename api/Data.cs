@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace MaterialManagement.Api;
@@ -10,6 +11,30 @@ public enum Iron { Low, Medium, High, DoNot }
 public enum DryClean { P, PMild, F, FMild, W, WMild, WVeryMild, DoNot }
 public enum TumbleDry { Normal, Low, DoNot }
 public enum ProjectStatus { Planned, InProgress, Done }
+public enum Fiber { Cotton, Polyester, Elastane, Viscose, Polyamide, Wool, Linen, Silk, Other }
+
+public record FiberPart(Fiber Fiber, double Percent);
+
+public static class Fibers
+{
+    public static string? Validate(List<FiberPart>? parts)
+    {
+        if (parts is not { Count: > 0 }) return null;
+        if (parts.Any(p => p.Percent is <= 0 or > 100)) return "Each fiber must be between 0 and 100 %.";
+        if (parts.Select(p => p.Fiber).Distinct().Count() != parts.Count) return "Each fiber can be listed only once.";
+        if (Math.Abs(parts.Sum(p => p.Percent) - 100) > 0.01) return "Composition must add up to 100 %.";
+        return null;
+    }
+
+    /// <summary>Fiber weights in grams for cut pieces (area cm², g/m², composition). Pieces missing weight or composition are skipped.</summary>
+    public static List<(Fiber Fiber, double Grams)> ByWeight(IEnumerable<(double AreaCm2, int? Gsm, List<FiberPart>? Parts)> pieces) =>
+        pieces.Where(x => x.Gsm > 0 && x.Parts is { Count: > 0 })
+            .SelectMany(x => x.Parts!.Select(p => (p.Fiber, Grams: x.AreaCm2 / 10000 * x.Gsm!.Value * p.Percent / 100)))
+            .GroupBy(x => x.Fiber)
+            .Select(g => (g.Key, g.Sum(x => x.Grams)))
+            .OrderByDescending(x => x.Item2)
+            .ToList();
+}
 
 /// <summary>One purchase of a fabric, always full roll width. Its first piece is RollWidthCm x LengthCm.</summary>
 public class Material
@@ -17,7 +42,7 @@ public class Material
     public int Id { get; set; }
     public required string Name { get; set; }
     public string? Color { get; set; }
-    public string? Composition { get; set; }
+    public List<FiberPart>? Composition { get; set; }
     public double? RollWidthCm { get; set; }
     public int? WeightGsm { get; set; }
     public string? NeedleType { get; set; }
@@ -85,6 +110,8 @@ public class Cut
 
 public class Db(DbContextOptions<Db> options) : DbContext(options)
 {
+    static readonly JsonSerializerOptions EnumAsText = new() { Converters = { new JsonStringEnumConverter() } };
+
     public DbSet<Material> Materials => Set<Material>();
     public DbSet<Piece> Pieces => Set<Piece>();
     public DbSet<Cut> Cuts => Set<Cut>();
@@ -102,6 +129,9 @@ public class Db(DbContextOptions<Db> options) : DbContext(options)
         m.Property(x => x.DiscountPercent).HasConversion<double?>();
         b.Entity<Project>().Property(x => x.Status).HasConversion<string>();
         b.Entity<Cut>().HasOne(c => c.Project).WithMany().OnDelete(DeleteBehavior.SetNull);
+        m.Property(x => x.Composition).HasConversion(
+            v => v == null ? null : JsonSerializer.Serialize(v, EnumAsText),
+            v => v == null ? null : JsonSerializer.Deserialize<List<FiberPart>>(v, EnumAsText));
         b.Entity<Piece>().Property(x => x.Shape).HasConversion(
             v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
             v => JsonSerializer.Deserialize<List<Rect>>(v, JsonSerializerOptions.Default)!);

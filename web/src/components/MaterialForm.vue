@@ -1,6 +1,6 @@
 <script setup>
-import { reactive, ref } from 'vue'
-import { CARE, NEEDLE_TYPES, NEEDLE_SIZES } from '../catalog.js'
+import { computed, reactive, ref } from 'vue'
+import { CARE, FIBERS, NEEDLE_TYPES, NEEDLE_SIZES } from '../catalog.js'
 import PriceTag from './PriceTag.vue'
 
 // `initial` is an existing material (edit), a copy without id (duplicate), or {} (new).
@@ -8,12 +8,21 @@ const props = defineProps({ initial: Object })
 const emit = defineEmits(['save', 'cancel'])
 const isNew = !props.initial.id
 const f = reactive({
-  name: '', color: '', composition: '', rollWidthCm: '', weightGsm: '', needleType: '', needleSize: '',
+  name: '', color: '', rollWidthCm: '', weightGsm: '', needleType: '', needleSize: '',
   certificate: '', wash: '', bleach: '', iron: '', dryClean: '', tumbleDry: '', link: '', pricePerMeter: '', discountPercent: '',
   store: '', purchaseDate: new Date().toISOString().slice(0, 10), lengthCm: '',
   // nulls -> '' so the empty select option shows
   ...Object.fromEntries(Object.entries(props.initial).map(([k, v]) => [k, v ?? ''])),
+  composition: (props.initial.composition ?? []).map((p) => ({ ...p })), // copy, so Cancel leaves the material untouched
 })
+const compositionSum = computed(() => f.composition.reduce((s, p) => s + (p.percent || 0), 0))
+const compositionError = computed(() => {
+  if (!f.composition.length) return ''
+  if (new Set(f.composition.map((p) => p.fiber)).size !== f.composition.length) return 'Each fiber only once.'
+  return Math.abs(compositionSum.value - 100) > 0.01 ? `Adds up to ${compositionSum.value}%, needs 100%.` : ''
+})
+const addFiber = () =>
+  f.composition.push({ fiber: Object.keys(FIBERS).find((k) => !f.composition.some((p) => p.fiber === k)) ?? 'Other', percent: Math.max(0, 100 - compositionSum.value) })
 const photo = ref(null)
 const widthLocked = !!props.initial.cuts?.length // first piece is already cut
 
@@ -32,7 +41,6 @@ function submit() {
       <legend>Fabric</legend>
       <label>Name *<input v-model="f.name" required /></label>
       <label>Color<input v-model="f.color" /></label>
-      <label>Composition<input v-model="f.composition" placeholder="100% cotton" /></label>
       <label>Roll width (cm) *
         <input v-model.number="f.rollWidthCm" type="number" step="0.1" min="0.1" required :disabled="widthLocked"
           :title="widthLocked ? 'Locked after the first cut' : ''" />
@@ -41,6 +49,21 @@ function submit() {
       <label>Certificate<input v-model="f.certificate" placeholder="OEKO-TEX STANDARD 100" /></label>
       <label>Link<input v-model="f.link" type="url" /></label>
       <label>Photo<input type="file" accept="image/*" @change="photo = $event.target.files[0]" /></label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Composition</legend>
+      <div v-for="(p, i) in f.composition" :key="i" class="fiber-row">
+        <select v-model="p.fiber" aria-label="Fiber">
+          <option v-for="(text, v) in FIBERS" :key="v" :value="v">{{ text }}</option>
+        </select>
+        <input v-model.number="p.percent" type="number" step="0.1" min="0.1" max="100" aria-label="Percent" /> %
+        <button type="button" @click="f.composition.splice(i, 1)" aria-label="Remove fiber">✕</button>
+      </div>
+      <div class="fiber-row">
+        <button type="button" @click="addFiber">+ Add fiber</button>
+        <span v-if="compositionError" class="error-text">{{ compositionError }}</span>
+      </div>
     </fieldset>
 
     <fieldset>
@@ -83,7 +106,7 @@ function submit() {
     </fieldset>
 
     <div class="actions">
-      <button type="submit" class="primary">Save</button>
+      <button type="submit" class="primary" :disabled="!!compositionError">Save</button>
       <button type="button" @click="emit('cancel')">Cancel</button>
     </div>
   </form>

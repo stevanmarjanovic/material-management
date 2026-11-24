@@ -8,7 +8,8 @@ A small inventory app for hobby sewing. Keep track of the fabrics you buy, see t
 
 **Materials**
 - One material per purchase. Fabric is always bought at full roll width, so you enter the roll width and the bought length.
-- Properties: name, color, composition, weight (g/m²), certificate, link and photo.
+- Properties: name, color, weight (g/m²), certificate, link and photo.
+- Composition as fibers with percentages (e.g. 95% Cotton, 5% Elastane), which must add up to 100%.
 - Price per meter plus a discount %, both saved. The page shows the original price struck through next to the discounted one, and the total you paid.
 - Needle type and size, shown with their color code.
 - Care symbols (ISO 3758) for washing, bleaching, ironing, dry cleaning and tumble drying.
@@ -25,6 +26,7 @@ A small inventory app for hobby sewing. Keep track of the fabrics you buy, see t
 - Name, status (planned / in progress / done), start date, notes and a photo.
 - Cuts can belong to a project, or to no project at all.
 - The project overview lists the materials used: number of pieces, area in m², and cost based on the discounted price.
+- Fiber composition of the whole project, by weight: cut area × g/m² × fiber %.
 
 ## Tech stack
 

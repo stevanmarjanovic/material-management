@@ -35,3 +35,12 @@ export const NEEDLE_SIZES = {
 }
 
 export const PROJECT_STATUS = { Planned: 'Planned', InProgress: 'In progress', Done: 'Done' }
+
+// Keys must match the C# Fiber enum in api/Data.cs.
+export const FIBERS = {
+  Cotton: 'Cotton', Polyester: 'Polyester', Elastane: 'Elastane', Viscose: 'Viscose', Polyamide: 'Polyamide',
+  Wool: 'Wool', Linen: 'Linen', Silk: 'Silk', Other: 'Other',
+}
+
+// [{fiber, percent}] -> '95% Cotton, 5% Elastane'
+export const formatComposition = (parts) => (parts ?? []).map((p) => `${p.percent}% ${FIBERS[p.fiber]}`).join(', ')

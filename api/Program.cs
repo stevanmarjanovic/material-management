@@ -111,6 +111,10 @@ object ProjectView(Project p, IEnumerable<Cut> cuts) => new
         c.Id, c.MaterialId, MaterialName = c.Material!.Name, MaterialColor = c.Material.Color, c.W, c.H, c.Label, c.CreatedAt,
         Area = c.W * c.H, Cost = c.Material.CostOf(c.W * c.H),
     }),
+    Fibers = Fibers.ByWeight(cuts.Select(c => (c.W * c.H, c.Material!.WeightGsm, c.Material.Composition)))
+        .Select(f => new { f.Fiber, f.Grams }),
+    // Cuts left out of the fiber calculation because their material has no g/m² or no composition.
+    UncountedCuts = cuts.Count(c => c.Material!.WeightGsm is not > 0 || c.Material.Composition is not { Count: > 0 }),
 };
 
 async Task<object?> LoadProject(int id, Db db) =>
@@ -214,7 +218,7 @@ public record ProjectInput(string Name, ProjectStatus Status, DateOnly? StartDat
 }
 
 public record MaterialInput(
-    string Name, string? Color, string? Composition, double? RollWidthCm, int? WeightGsm,
+    string Name, string? Color, List<FiberPart>? Composition, double? RollWidthCm, int? WeightGsm,
     string? NeedleType, int? NeedleSize, string? Certificate, Wash? Wash, Bleach? Bleach, Iron? Iron,
     DryClean? DryClean, TumbleDry? TumbleDry, string? Link, decimal? PricePerMeter, decimal? DiscountPercent,
     string? Store, DateOnly? PurchaseDate, double? LengthCm)
@@ -222,11 +226,11 @@ public record MaterialInput(
     public string? Validate() =>
         string.IsNullOrWhiteSpace(Name) ? "Name is required."
         : DiscountPercent is < 0 or > 100 ? "Discount must be 0-100 %."
-        : null;
+        : Fibers.Validate(Composition);
 
     public void Apply(Material m)
     {
-        m.Name = Name.Trim(); m.Color = Color; m.Composition = Composition; m.RollWidthCm = RollWidthCm;
+        m.Name = Name.Trim(); m.Color = Color; m.Composition = Composition is { Count: > 0 } ? Composition : null; m.RollWidthCm = RollWidthCm;
         m.WeightGsm = WeightGsm; m.NeedleType = NeedleType; m.NeedleSize = NeedleSize; m.Certificate = Certificate;
         m.Wash = Wash; m.Bleach = Bleach; m.Iron = Iron; m.DryClean = DryClean; m.TumbleDry = TumbleDry;
         m.Link = Link; m.PricePerMeter = PricePerMeter; m.DiscountPercent = DiscountPercent; m.Store = Store; m.PurchaseDate = PurchaseDate;
