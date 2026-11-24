@@ -183,7 +183,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
       </template>
 
       <div class="aside-footer">
-        <IconButton icon="settings" label="Settings" :class="{ active: showSettings }" @click="showSettings = true" />
+        <IconButton icon="settings" label="Settings" class="light" :class="{ active: showSettings }" @click="showSettings = true" />
         <IconButton v-if="tab === 'materials'" icon="add" label="New material" text="New" class="primary" @click="select(null); editing = {}" />
         <IconButton v-else icon="add" label="New project" text="New" class="primary" @click="selectProject(null); editing = {}" />
       </div>
