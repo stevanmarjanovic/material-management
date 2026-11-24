@@ -258,8 +258,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                 v-for="p in selected.pieces" :key="p.id" class="piece-btn" :class="{ active: p.id === pieceId }"
                 @click="pieceId = p.id; cut = null"
               >
-                <PieceShape :shape="p.shape" :color="selected.previewColor" />
-                <small>{{ m2(p.area) }} m²</small>
+                <PieceShape :shape="p.shape" :color="selected.previewColor" :label="`${m2(p.area)} m²`" />
               </button>
             </div>
           </section>

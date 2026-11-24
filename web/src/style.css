@@ -31,6 +31,8 @@ dd { margin: 0; }
 .pieces { display: flex; flex-wrap: wrap; gap: .75rem; }
 .piece-btn { width: 160px; display: flex; flex-direction: column; align-items: center; gap: .25rem; padding: .5rem; }
 .piece-btn.active { outline: 2px solid var(--accent); }
+/* Same square box for every thumbnail, so labels come out the same size whatever the piece's shape. */
+.piece-btn .piece { height: 140px; }
 .cut-layout { display: flex; gap: 1rem; align-items: flex-start; }
 .cut-form { display: flex; flex-direction: column; gap: .5rem; width: 200px; }
 .form fieldset { border: 1px solid var(--border); border-radius: 8px; margin: 0 0 1rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .75rem; }
@@ -82,10 +84,10 @@ tr.total td { font-weight: 600; border-bottom: none; }
 .care-option.selected { opacity: 1; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; padding: .3rem; }
 .icon-btn .material-symbols-rounded { font-size: 20px; }
-/* line-height 1 on both parts: icon and text boxes are then the same height, so they center on each other */
-.icon-btn.with-text { gap: .35rem; padding: .4rem .7rem .4rem .5rem; line-height: 1; }
 /* Lighter strokes: optical size 48 is drawn thinner than the default 24. */
 .icon-btn.light .material-symbols-rounded { font-variation-settings: 'opsz' 48; }
+/* line-height 1 on both parts: icon and text boxes are then the same height, so they center on each other */
+.icon-btn.with-text { gap: .35rem; padding: .4rem .7rem .4rem .5rem; line-height: 1; }
 .actions.halves > * { flex: 1; } /* two buttons, 50/50, content centered */
 /* Icon only, no button box: fits a table row without making it taller. */
 .icon-btn.plain { padding: 0; border: 0; background: none; color: var(--accent); }

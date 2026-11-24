@@ -2,16 +2,28 @@
 import { computed, ref } from 'vue'
 import { fitCut, nearestOnFabric } from '../fitCut.js'
 
-// Draws one piece (a set of rectangles, cm). With `editable`, a rectangle can be dragged and is v-model'd as `cut`.
-const props = defineProps({ shape: Array, editable: Boolean, color: String })
+// Draws one piece (a set of rectangles, cm). With `editable`, a rectangle can be dragged and is v-model'd as `cut`
+// and the dimensions are shown; otherwise it's a thumbnail with an optional `label` (e.g. the area) inside.
+const props = defineProps({ shape: Array, editable: Boolean, color: String, label: String })
 const cut = defineModel('cut', { default: null })
 
 const SNAP = 0.5 // cm
 const width = computed(() => Math.max(...props.shape.map((r) => r.x + r.w)))
 const length = computed(() => Math.max(...props.shape.map((r) => r.y + r.h)))
-const pad = computed(() => Math.max(width.value, length.value) * 0.08)
+const pad = computed(() => Math.max(width.value, length.value) * (props.editable ? 0.08 : 0.03)) // thumbnails: room for the outline only
 const viewBox = computed(() => `${-pad.value} ${-pad.value} ${width.value + 2 * pad.value} ${length.value + 2 * pad.value}`)
 const font = computed(() => Math.max(width.value, length.value) * 0.045)
+// Label in the bottom-right corner of the lowest rectangle, so it's always on the fabric (also for L-shapes).
+const labelAt = computed(() => {
+  const r = props.shape.reduce((a, b) => (b.y + b.h > a.y + a.h || (b.y + b.h === a.y + a.h && b.x + b.w > a.x + a.w) ? b : a))
+  return { x: r.x + r.w - font.value, y: r.y + r.h - font.value }
+})
+// Dark text on light fabric, white text on dark fabric.
+const labelColor = computed(() => {
+  const hex = (props.color || '#d9c7a7').slice(1)
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16))
+  return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? '#222' : '#fff'
+})
 // Double-headed arrow to the right of the piece, along its full length.
 const grain = computed(() => {
   const x = width.value + pad.value * 0.35
@@ -76,11 +88,16 @@ function up() {
 
 <template>
   <svg ref="svg" :viewBox="viewBox" class="piece" :class="{ editable }" @pointerdown="down" @pointermove="move" @pointerup="up">
-    <rect v-for="(r, i) in shape" :key="i" :x="r.x" :y="r.y" :width="r.w" :height="r.h" :fill="color || '#d9c7a7'" />
+    <rect v-for="(r, i) in shape" :key="i" :x="r.x" :y="r.y" :width="r.w" :height="r.h" :fill="color || '#d9c7a7'" shape-rendering="crispEdges" />
     <path v-if="editable" :d="grid" stroke="#0002" :stroke-width="font * 0.05" fill="none" />
     <path :d="outline" stroke="#333" :stroke-width="font * 0.12" fill="none" stroke-linecap="square" />
-    <text :x="width / 2" :y="-pad * 0.3" :font-size="font" text-anchor="middle">{{ width }} cm</text>
-    <text :x="-pad * 0.3" :y="length / 2" :font-size="font" text-anchor="middle" :transform="`rotate(-90 ${-pad * 0.3} ${length / 2})`">{{ length }} cm</text>
+    <template v-if="editable">
+      <text :x="width / 2" :y="-pad * 0.3" :font-size="font" text-anchor="middle">{{ width }} cm</text>
+      <text :x="-pad * 0.3" :y="length / 2" :font-size="font" text-anchor="middle" :transform="`rotate(-90 ${-pad * 0.3} ${length / 2})`">{{ length }} cm</text>
+    </template>
+    <text
+      v-else-if="label" :x="labelAt.x" :y="labelAt.y" :font-size="font * 2" text-anchor="end" :style="{ fill: labelColor }"
+    >{{ label }}</text>
     <!-- Grain line: fabric comes off the roll, so the lengthwise grain runs along the length. -->
     <path v-if="editable" :d="grain" fill="none" stroke="currentColor" :stroke-width="font * 0.12" stroke-linecap="round" stroke-linejoin="round">
       <title>Grain line</title>
