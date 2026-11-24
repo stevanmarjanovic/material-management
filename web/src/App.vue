@@ -218,7 +218,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                     {{ selected.needleType }} {{ selected.needleSize }}<template v-if="selected.needleSize">/{{ NEEDLE_SIZES[selected.needleSize]?.[0] }}</template>
                   </dd>
                 </template>
-                <template v-if="selected.link"><dt>Link</dt><dd><a :href="selected.link" target="_blank" rel="noopener">open</a></dd></template>
+                <template v-if="selected.link"><dt>Link</dt><dd><a :href="selected.link" target="_blank" rel="noopener" class="icon-link" title="Open in new tab" aria-label="Open in new tab"><span class="material-symbols-rounded" aria-hidden="true">open_in_new</span></a></dd></template>
               </dl>
               <div class="care-row">
                 <template v-for="(_, key) in CARE" :key="key">
@@ -250,7 +250,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
           <section v-if="piece" class="card">
             <h3>
               Cut from piece #{{ piece.id }}
-              <span class="info" tabindex="0" :title="CUT_HELP" :aria-label="CUT_HELP">🛈</span>
+              <span class="info material-symbols-rounded" role="img" tabindex="0" :title="CUT_HELP" :aria-label="CUT_HELP">help</span>
             </h3>
             <div class="cut-layout">
               <div class="grow"><PieceShape v-model:cut="cut" :shape="piece.shape" :color="selected.previewColor" editable /></div>
@@ -340,7 +340,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
           <section v-if="project.cuts.length || Object.keys(CARE).some((k) => project[k])" class="card">
             <h3>
               Care for the finished product
-              <span class="info" tabindex="0" :title="CARE_HELP" :aria-label="CARE_HELP">🛈</span>
+              <span class="info material-symbols-rounded" role="img" tabindex="0" :title="CARE_HELP" :aria-label="CARE_HELP">help</span>
             </h3>
             <div class="care-list">
               <template v-for="(c, key) in CARE" :key="key">
@@ -362,7 +362,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
           <section v-if="project.fibers.length" class="card">
             <h3>
               Fiber composition
-              <span class="info" tabindex="0" :title="FIBER_HELP" :aria-label="FIBER_HELP">🛈</span>
+              <span class="info material-symbols-rounded" role="img" tabindex="0" :title="FIBER_HELP" :aria-label="FIBER_HELP">help</span>
             </h3>
             <table>
               <tr><th>Fiber</th><th class="num">Grams</th><th class="num">%</th></tr>
