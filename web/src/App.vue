@@ -7,6 +7,7 @@ import MaterialForm from './components/MaterialForm.vue'
 import ProjectForm from './components/ProjectForm.vue'
 import PieceShape from './components/PieceShape.vue'
 import PriceTag from './components/PriceTag.vue'
+import PurchaseRow from './components/PurchaseRow.vue'
 import { currency } from './settings.js'
 
 const tab = ref('materials') // 'materials' | 'projects'
@@ -16,6 +17,7 @@ const selectedId = ref(null)
 const projectId = ref(null)
 const editing = ref(null) // object passed to MaterialForm / ProjectForm, or null
 const pieceId = ref(null)
+const purchaseEditing = ref(null) // purchase being edited inline ({} = new row), or null
 const cut = ref(null)
 const cutLabel = ref('')
 const cutProjectId = ref('') // kept between cuts: you usually cut several pieces for one project
@@ -66,6 +68,7 @@ async function uploadPhoto(kind, id, photo) {
 
 function select(id) {
   showSettings.value = false
+  purchaseEditing.value = null
   tab.value = 'materials'
   selectedId.value = id
   editing.value = null
@@ -85,7 +88,7 @@ async function saveMaterial(body, photo) {
 }
 
 function duplicate() {
-  const { id, pieces, cuts, hasPhoto, ...props } = selected.value
+  const { id, pieces, cuts, purchases, hasPhoto, ...props } = selected.value
   editing.value = { ...props, name: `${props.name} (copy)` }
 }
 
@@ -95,6 +98,17 @@ async function removeMaterial() {
   materials.value = materials.value.filter((m) => m.id !== selectedId.value)
   select(null)
   loadProjects()
+}
+
+async function savePurchase(body) {
+  const m = body.id ? await api('PUT', `/purchases/${body.id}`, body) : await api('POST', `/materials/${selectedId.value}/purchases`, body)
+  replace(materials, m)
+  purchaseEditing.value = null
+}
+
+async function removePurchase(p) {
+  if (!confirm(`Delete the purchase of ${p.lengthCm} cm${p.purchaseDate ? ` from ${p.purchaseDate}` : ''}?`)) return
+  replace(materials, await api('DELETE', `/purchases/${p.id}`))
 }
 
 async function saveCut() {
@@ -216,17 +230,11 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
               <dl>
                 <template v-for="[k, v] in [
                   ['Color', selected.color], ['Composition', formatComposition(selected.composition)],
-                  ['Bought', `${selected.lengthCm} cm × ${selected.rollWidthCm} cm roll`],
+                  ['Roll width', selected.rollWidthCm && `${selected.rollWidthCm} cm`],
                   ['Weight', selected.weightGsm && `${selected.weightGsm} g/m²`], ['Certificate', selected.certificate],
-                  ['Store', selected.store], ['Purchased', selected.purchaseDate],
+                  ['Store', selected.store],
                 ]" :key="k">
                   <template v-if="v"><dt>{{ k }}</dt><dd>{{ v }}</dd></template>
-                </template>
-                <template v-if="selected.pricePerMeter != null">
-                  <dt>Price</dt>
-                  <dd><PriceTag :price="selected.pricePerMeter" :final="selected.finalPricePerMeter" :discount="selected.discountPercent" :unit="` ${currency}/m`" /></dd>
-                  <dt>Total</dt>
-                  <dd>{{ money(selected.totalPrice) }} {{ currency }}</dd>
                 </template>
                 <template v-if="selected.needleType || selected.needleSize">
                   <dt>Needle</dt>
@@ -251,6 +259,35 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
           </section>
 
           <section class="card">
+            <h3>Purchases</h3>
+            <table v-if="selected.purchases.length || purchaseEditing" class="purchases">
+              <tr>
+                <th>Date</th><th class="num">Length (cm)</th><th class="num">Price ({{ currency }}/m)</th>
+                <th class="num">Discount (%)</th><th class="num">Total ({{ currency }})</th><th />
+              </tr>
+              <template v-for="p in selected.purchases" :key="p.id">
+                <PurchaseRow v-if="purchaseEditing?.id === p.id" :initial="purchaseEditing" @save="savePurchase" @cancel="purchaseEditing = null" />
+                <tr v-else>
+                  <td>{{ p.purchaseDate }}</td>
+                  <td class="num">{{ p.lengthCm }}</td>
+                  <td class="num"><PriceTag v-if="p.pricePerMeter != null" :price="p.pricePerMeter" :final="p.finalPricePerMeter" :discount="p.discountPercent" /></td>
+                  <td class="num">{{ p.discountPercent || '' }}</td>
+                  <td class="num">{{ money(p.totalPrice) }}</td>
+                  <td class="action">
+                    <div class="actions">
+                      <IconButton icon="edit" label="Edit purchase" class="plain" @click="purchaseEditing = { ...p }" />
+                      <IconButton v-if="!p.cut" icon="delete" label="Delete purchase" class="plain danger" @click="removePurchase(p)" />
+                    </div>
+                  </td>
+                </tr>
+              </template>
+              <PurchaseRow v-if="purchaseEditing && !purchaseEditing.id" :initial="purchaseEditing" @save="savePurchase" @cancel="purchaseEditing = null" />
+            </table>
+            <p v-else class="muted">No purchases yet. Adding one creates its first piece: {{ selected.rollWidthCm }} cm × the length bought.</p>
+            <IconButton v-if="!purchaseEditing" icon="add" label="Add purchase" text="Add purchase" class="add-purchase" @click="purchaseEditing = {}" />
+          </section>
+
+          <section v-if="selected.purchases.length" class="card">
             <h3>Pieces — {{ m2(selected.remainingArea) }} m² left</h3>
             <p v-if="!selected.pieces.length" class="muted">Everything is used up.</p>
             <div class="pieces">

@@ -7,14 +7,14 @@ A small inventory app for hobby sewing. Keep track of the fabrics you buy, see t
 ## Features
 
 **Materials**
-- One material per purchase. Fabric is always bought at full roll width, so you enter the roll width and the bought length.
+- A material is one fabric (name + color, bought in one store, one roll width). Each purchase of it adds a full-width piece of the bought length, so all pieces of a fabric are in one place.
 - Properties: name, color, weight (g/m²), certificate, link and photo.
 - Composition as fibers with percentages (e.g. 95% Cotton, 5% Elastane), which must add up to 100%.
-- Price per meter plus a discount %, both saved. The page shows the original price struck through next to the discounted one, and the total you paid.
+- Each purchase has its own date, price per meter and discount %. The page shows the original price struck through next to the discounted one, and the total you paid. A purchase's length is fixed and it can't be deleted once it's cut.
 - Needle type and size, shown with their color code.
 - Care symbols (ISO 3758) for washing, bleaching, ironing, dry cleaning and tumble drying.
 - Preview color: the average color of the center of the photo (skipping background at the edges), calculated by the API and used to draw the pieces.
-- Duplicate a material when you buy the same fabric again.
+- Duplicate a material to start a similar fabric (e.g. the same fabric in another color).
 
 **Cutting**
 - Every cut is a rectangle, so leftovers can become odd shapes, but they always have 90° corners.
@@ -25,7 +25,7 @@ A small inventory app for hobby sewing. Keep track of the fabrics you buy, see t
 **Projects**
 - Name, status (planned / in progress / done), start date, notes and a photo.
 - Cuts can belong to a project, or to no project at all.
-- The project overview lists the materials used: number of pieces, area in m², and cost based on the discounted price.
+- The project overview lists the materials used: number of pieces, area in m², and cost. Each cut is costed at the price of the purchase it came from.
 - Fiber composition of the whole project, by weight: cut area × g/m² × fiber %.
 
 ## Tech stack

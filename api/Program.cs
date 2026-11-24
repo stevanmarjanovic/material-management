@@ -23,19 +23,24 @@ var api = app.MapGroup("/api");
 object View(Material m) => new
 {
     m.Id, m.Name, m.Color, m.Composition, m.RollWidthCm, m.WeightGsm, m.NeedleType, m.NeedleSize,
-    m.Certificate, m.Wash, m.Bleach, m.Iron, m.DryClean, m.TumbleDry, m.Link, m.Store, m.PurchaseDate,
-    m.LengthCm, m.PricePerMeter, m.DiscountPercent, m.FinalPricePerMeter, m.TotalPrice,
+    m.Certificate, m.Wash, m.Bleach, m.Iron, m.DryClean, m.TumbleDry, m.Link, m.Store,
     HasPhoto = m.Photo != null, m.PreviewColor,
-    Pieces = m.Pieces.Where(p => p.Active).OrderBy(p => p.Id).Select(p => new { p.Id, p.Shape, Area = Geometry.Area(p.Shape) }),
+    Purchases = m.Purchases.OrderBy(p => p.PurchaseDate).ThenBy(p => p.Id).Select(p => new
+    {
+        p.Id, p.LengthCm, p.PricePerMeter, p.DiscountPercent, p.FinalPricePerMeter, p.TotalPrice, p.PurchaseDate,
+        Cut = m.Cuts.Any(c => c.PurchaseId == p.Id), // once cut: length is fixed and it can't be deleted
+    }),
+    Pieces = m.Pieces.Where(p => p.Active).OrderBy(p => p.Id).Select(p => new { p.Id, p.PurchaseId, p.Shape, Area = Geometry.Area(p.Shape) }),
     RemainingArea = m.Pieces.Where(p => p.Active).Sum(p => Geometry.Area(p.Shape)),
     Cuts = m.Cuts.OrderByDescending(c => c.Id).Select(c => new
     {
         c.Id, c.SourcePieceId, c.X, c.Y, c.W, c.H, c.Label, c.CreatedAt, c.ProjectId, ProjectName = c.Project?.Name,
-        Area = c.W * c.H, Cost = m.CostOf(c.W * c.H),
+        Area = c.W * c.H, Cost = m.Purchases.First(p => p.Id == c.PurchaseId).CostOf(c.W * c.H, m.RollWidthCm),
     }),
 };
 
-IQueryable<Material> Full(Db db) => db.Materials.Include(m => m.Pieces).Include(m => m.Cuts).ThenInclude(c => c.Project);
+IQueryable<Material> Full(Db db) =>
+    db.Materials.Include(m => m.Purchases).Include(m => m.Pieces).Include(m => m.Cuts).ThenInclude(c => c.Project);
 
 api.MapGet("/materials", async (Db db) =>
     (await Full(db).OrderBy(m => m.Name).ToListAsync()).Select(View));
@@ -46,10 +51,9 @@ api.MapGet("/materials/{id:int}", async (int id, Db db) =>
 api.MapPost("/materials", async (MaterialInput input, Db db) =>
 {
     if (input.Validate() is { } error) return Results.BadRequest(error);
-    if (input.RollWidthCm is not > 0 || input.LengthCm is not > 0) return Results.BadRequest("Roll width and length must be > 0.");
-    var m = new Material { Name = input.Name, LengthCm = input.LengthCm.Value };
+    if (input.RollWidthCm is not > 0) return Results.BadRequest("Roll width must be > 0.");
+    var m = new Material { Name = input.Name };
     input.Apply(m);
-    m.Pieces.Add(new Piece { Shape = [new Rect(0, 0, input.RollWidthCm.Value, input.LengthCm.Value)] });
     db.Materials.Add(m);
     await db.SaveChangesAsync();
     return Results.Ok(View(m));
@@ -60,29 +64,74 @@ api.MapPut("/materials/{id:int}", async (int id, MaterialInput input, Db db) =>
     if (input.Validate() is { } error) return Results.BadRequest(error);
     var m = await Full(db).FirstOrDefaultAsync(m => m.Id == id);
     if (m == null) return Results.NotFound();
-    // The roll width is the first piece's width, so it can only change while that piece is uncut.
+    // The roll width is the width of every bought piece, so it can only change while nothing is cut.
     var uncut = m.Cuts.Count == 0;
     if (input.RollWidthCm != m.RollWidthCm && !uncut) return Results.BadRequest("Roll width can't change after the first cut.");
     if (input.RollWidthCm is not > 0) return Results.BadRequest("Roll width must be > 0.");
     input.Apply(m);
-    if (uncut) m.Pieces[0].Shape = [new Rect(0, 0, input.RollWidthCm.Value, m.LengthCm)];
+    if (uncut)
+        foreach (var piece in m.Pieces)
+            piece.Shape = [new Rect(0, 0, input.RollWidthCm.Value, m.Purchases.First(p => p.Id == piece.PurchaseId).LengthCm)];
     await db.SaveChangesAsync();
     return Results.Ok(View(m));
 });
 
 api.MapDelete("/materials/{id:int}", async (int id, Db db) =>
 {
-    await db.Pieces.Where(p => p.MaterialId == id).ExecuteDeleteAsync();
     await db.Cuts.Where(c => c.MaterialId == id).ExecuteDeleteAsync();
+    await db.Pieces.Where(p => p.MaterialId == id).ExecuteDeleteAsync();
+    await db.Purchases.Where(p => p.MaterialId == id).ExecuteDeleteAsync();
     return await db.Materials.Where(m => m.Id == id).ExecuteDeleteAsync() > 0 ? Results.NoContent() : Results.NotFound();
 });
 
-// Price after discount for values not saved yet (live preview in forms). Same formula as a saved material.
+// Price after discount for values not saved yet (live preview in forms). Same formula as a saved purchase.
 api.MapGet("/prices", (decimal pricePerMeter, decimal? discountPercent, double? lengthCm) =>
 {
     if (pricePerMeter < 0 || discountPercent is < 0 or > 100) return Results.BadRequest("Price must be >= 0, discount 0-100 %.");
-    var m = new Material { Name = "", PricePerMeter = pricePerMeter, DiscountPercent = discountPercent, LengthCm = lengthCm ?? 0 };
-    return Results.Ok(new { m.FinalPricePerMeter, TotalPrice = lengthCm > 0 ? m.TotalPrice : null });
+    var p = new Purchase { PricePerMeter = pricePerMeter, DiscountPercent = discountPercent, LengthCm = lengthCm ?? 0 };
+    return Results.Ok(new { p.FinalPricePerMeter, TotalPrice = lengthCm > 0 ? p.TotalPrice : null });
+});
+
+// --- Purchases: each one adds a full-width piece of the bought length ---
+
+api.MapPost("/materials/{id:int}/purchases", async (int id, PurchaseInput input, Db db) =>
+{
+    if (input.Validate() is { } error) return Results.BadRequest(error);
+    var m = await Full(db).FirstOrDefaultAsync(m => m.Id == id);
+    if (m == null) return Results.NotFound();
+    if (m.RollWidthCm is not > 0) return Results.BadRequest("Set the material's roll width first.");
+    var purchase = new Purchase { MaterialId = id };
+    input.Apply(purchase);
+    m.Purchases.Add(purchase);
+    await db.SaveChangesAsync(); // purchase id for the piece
+    m.Pieces.Add(new Piece { PurchaseId = purchase.Id, Shape = [new Rect(0, 0, m.RollWidthCm.Value, purchase.LengthCm)] });
+    await db.SaveChangesAsync();
+    return Results.Ok(View(m));
+});
+
+api.MapPut("/purchases/{id:int}", async (int id, PurchaseInput input, Db db) =>
+{
+    if (input.Validate() is { } error) return Results.BadRequest(error);
+    var purchase = await db.Purchases.FindAsync(id);
+    if (purchase == null) return Results.NotFound();
+    var m = await Full(db).FirstAsync(m => m.Id == purchase.MaterialId);
+    var cut = m.Cuts.Any(c => c.PurchaseId == id);
+    if (cut && input.LengthCm != purchase.LengthCm) return Results.BadRequest("Length can't change after the first cut.");
+    input.Apply(purchase);
+    if (!cut) m.Pieces.Single(p => p.PurchaseId == id).Shape = [new Rect(0, 0, m.RollWidthCm!.Value, purchase.LengthCm)];
+    await db.SaveChangesAsync();
+    return Results.Ok(View(m));
+});
+
+api.MapDelete("/purchases/{id:int}", async (int id, Db db) =>
+{
+    var purchase = await db.Purchases.FindAsync(id);
+    if (purchase == null) return Results.NotFound();
+    if (await db.Cuts.AnyAsync(c => c.PurchaseId == id)) return Results.BadRequest("A purchase can only be deleted before it's cut.");
+    await db.Pieces.Where(p => p.PurchaseId == id).ExecuteDeleteAsync();
+    db.Purchases.Remove(purchase);
+    await db.SaveChangesAsync();
+    return Results.Ok(View(await Full(db).FirstAsync(m => m.Id == purchase.MaterialId)));
 });
 
 api.MapGet("/materials/{id:int}/photo", async (int id, Db db) =>
@@ -119,20 +168,22 @@ object ProjectView(Project p, IEnumerable<Cut> cuts) => new
     Cuts = cuts.OrderBy(c => c.Material!.Name).ThenBy(c => c.Id).Select(c => new
     {
         c.Id, c.MaterialId, MaterialName = c.Material!.Name, MaterialColor = c.Material.Color, c.W, c.H, c.Label, c.CreatedAt,
-        Area = c.W * c.H, Cost = c.Material.CostOf(c.W * c.H),
+        Area = c.W * c.H, Cost = CutCost(c),
     }),
-    // One row per material used: number of cut pieces, area (cm²) and cost.
+    // One row per material used: number of cut pieces, area (cm²) and cost (each cut at its own purchase's price).
     Materials = cuts.GroupBy(c => c.Material!).OrderBy(g => g.Key.Name).Select(g => new
     {
         MaterialId = g.Key.Id, g.Key.Name, g.Key.Color, Pieces = g.Count(),
-        Area = g.Sum(c => c.W * c.H), Cost = g.Sum(c => g.Key.CostOf(c.W * c.H)),
+        Area = g.Sum(c => c.W * c.H), Cost = g.Sum(CutCost),
     }),
-    Totals = new { Pieces = cuts.Count(), Area = cuts.Sum(c => c.W * c.H), Cost = cuts.Sum(c => c.Material!.CostOf(c.W * c.H)) },
+    Totals = new { Pieces = cuts.Count(), Area = cuts.Sum(c => c.W * c.H), Cost = cuts.Sum(CutCost) },
     Fibers = FiberView(Fibers.ByWeight(cuts.Select(c => (c.W * c.H, c.Material!.WeightGsm, c.Material.Composition)))),
     // Cuts left out of the fiber calculation because their material has no g/m² or no composition.
     UncountedCuts = cuts.Count(c => c.Material!.WeightGsm is not > 0 || c.Material.Composition is not { Count: > 0 }),
     Care = ProjectCare(cuts.Select(c => c.Material!).DistinctBy(m => m.Id).ToList()),
 };
+
+static decimal? CutCost(Cut c) => c.Purchase!.CostOf(c.W * c.H, c.Material!.RollWidthCm);
 
 static IEnumerable<object> FiberView(List<(Fiber Fiber, double Grams)> fibers)
 {
@@ -160,12 +211,12 @@ object ProjectCare(List<Material> ms) => new
 
 async Task<object?> LoadProject(int id, Db db) =>
     await db.Projects.FindAsync(id) is { } p
-        ? ProjectView(p, await db.Cuts.Include(c => c.Material).Where(c => c.ProjectId == id).ToListAsync())
+        ? ProjectView(p, await db.Cuts.Include(c => c.Material).Include(c => c.Purchase).Where(c => c.ProjectId == id).ToListAsync())
         : null;
 
 api.MapGet("/projects", async (Db db) =>
 {
-    var cuts = await db.Cuts.Include(c => c.Material).Where(c => c.ProjectId != null).ToListAsync();
+    var cuts = await db.Cuts.Include(c => c.Material).Include(c => c.Purchase).Where(c => c.ProjectId != null).ToListAsync();
     return (await db.Projects.OrderBy(p => p.Name).ToListAsync()).Select(p => ProjectView(p, cuts.Where(c => c.ProjectId == p.Id)));
 });
 
@@ -221,13 +272,13 @@ api.MapPost("/pieces/{id:int}/cuts", async (int id, CutInput input, Db db) =>
     if (error != null) return Results.BadRequest(error);
     if (input.ProjectId is { } pid && await db.Projects.FindAsync(pid) == null) return Results.BadRequest("Project not found.");
 
-    var created = leftovers!.Select(s => new Piece { MaterialId = piece.MaterialId, Shape = s }).ToList();
+    var created = leftovers!.Select(s => new Piece { MaterialId = piece.MaterialId, PurchaseId = piece.PurchaseId, Shape = s }).ToList();
     db.Pieces.AddRange(created);
     piece.Active = false;
     await db.SaveChangesAsync(); // assigns ids to the new pieces
     db.Cuts.Add(new Cut
     {
-        MaterialId = piece.MaterialId, SourcePieceId = piece.Id, X = input.X, Y = input.Y, W = input.W, H = input.H,
+        MaterialId = piece.MaterialId, SourcePieceId = piece.Id, PurchaseId = piece.PurchaseId, X = input.X, Y = input.Y, W = input.W, H = input.H,
         Label = input.Label, ProjectId = input.ProjectId, ResultPieceIds = created.Select(p => p.Id).ToList(),
     });
     await db.SaveChangesAsync();
@@ -262,15 +313,25 @@ public record ProjectInput(
     }
 }
 
+public record PurchaseInput(double LengthCm, decimal? PricePerMeter, decimal? DiscountPercent, DateOnly? PurchaseDate)
+{
+    public string? Validate() =>
+        LengthCm <= 0 ? "Length must be > 0."
+        : PricePerMeter < 0 ? "Price can't be negative."
+        : DiscountPercent is < 0 or > 100 ? "Discount must be 0-100 %."
+        : null;
+
+    public void Apply(Purchase p) =>
+        (p.LengthCm, p.PricePerMeter, p.DiscountPercent, p.PurchaseDate) = (LengthCm, PricePerMeter, DiscountPercent, PurchaseDate);
+}
+
 public record MaterialInput(
     string Name, string? Color, List<FiberPart>? Composition, double? RollWidthCm, int? WeightGsm,
     string? NeedleType, int? NeedleSize, string? Certificate, Wash? Wash, Bleach? Bleach, Iron? Iron,
-    DryClean? DryClean, TumbleDry? TumbleDry, string? Link, decimal? PricePerMeter, decimal? DiscountPercent,
-    string? Store, DateOnly? PurchaseDate, double? LengthCm)
+    DryClean? DryClean, TumbleDry? TumbleDry, string? Link, string? Store)
 {
     public string? Validate() =>
         string.IsNullOrWhiteSpace(Name) ? "Name is required."
-        : DiscountPercent is < 0 or > 100 ? "Discount must be 0-100 %."
         : Fibers.Validate(Composition);
 
     public void Apply(Material m)
@@ -278,6 +339,6 @@ public record MaterialInput(
         m.Name = Name.Trim(); m.Color = Color; m.Composition = Composition is { Count: > 0 } ? Composition : null; m.RollWidthCm = RollWidthCm;
         m.WeightGsm = WeightGsm; m.NeedleType = NeedleType; m.NeedleSize = NeedleSize; m.Certificate = Certificate;
         m.Wash = Wash; m.Bleach = Bleach; m.Iron = Iron; m.DryClean = DryClean; m.TumbleDry = TumbleDry;
-        m.Link = Link; m.PricePerMeter = PricePerMeter; m.DiscountPercent = DiscountPercent; m.Store = Store; m.PurchaseDate = PurchaseDate;
+        m.Link = Link; m.Store = Store;
     }
 }

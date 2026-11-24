@@ -92,3 +92,9 @@ tr.total td { font-weight: 600; border-bottom: none; }
 /* Icon only, no button box: fits a table row without making it taller. */
 .icon-btn.plain { padding: 0; border: 0; background: none; color: var(--accent); }
 .icon-btn.plain .material-symbols-rounded { font-size: 18px; }
+.icon-btn.plain.danger { color: var(--danger); }
+.add-purchase { margin-top: .75rem; }
+/* Inline edit row: inputs fill their cells, numbers right-aligned like the values they replace. */
+.edit-row input { width: 100%; padding: .2rem .4rem; }
+.edit-row td.num input { text-align: right; }
+input.invalid { border-color: var(--danger); }

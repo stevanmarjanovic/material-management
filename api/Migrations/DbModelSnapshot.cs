@@ -38,6 +38,9 @@ namespace MaterialManagement.Api.Migrations
                     b.Property<int?>("ProjectId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("PurchaseId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ResultPieceIds")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -60,6 +63,8 @@ namespace MaterialManagement.Api.Migrations
 
                     b.HasIndex("ProjectId");
 
+                    b.HasIndex("PurchaseId");
+
                     b.ToTable("Cuts");
                 });
 
@@ -81,17 +86,11 @@ namespace MaterialManagement.Api.Migrations
                     b.Property<string>("Composition")
                         .HasColumnType("TEXT");
 
-                    b.Property<double?>("DiscountPercent")
-                        .HasColumnType("REAL");
-
                     b.Property<string>("DryClean")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Iron")
                         .HasColumnType("TEXT");
-
-                    b.Property<double>("LengthCm")
-                        .HasColumnType("REAL");
 
                     b.Property<string>("Link")
                         .HasColumnType("TEXT");
@@ -113,12 +112,6 @@ namespace MaterialManagement.Api.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PreviewColor")
-                        .HasColumnType("TEXT");
-
-                    b.Property<double?>("PricePerMeter")
-                        .HasColumnType("REAL");
-
-                    b.Property<DateOnly?>("PurchaseDate")
                         .HasColumnType("TEXT");
 
                     b.Property<double?>("RollWidthCm")
@@ -153,6 +146,9 @@ namespace MaterialManagement.Api.Migrations
                     b.Property<int>("MaterialId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("PurchaseId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Shape")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -160,6 +156,8 @@ namespace MaterialManagement.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MaterialId");
+
+                    b.HasIndex("PurchaseId");
 
                     b.ToTable("Pieces");
                 });
@@ -210,6 +208,34 @@ namespace MaterialManagement.Api.Migrations
                     b.ToTable("Projects");
                 });
 
+            modelBuilder.Entity("MaterialManagement.Api.Purchase", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("DiscountPercent")
+                        .HasColumnType("REAL");
+
+                    b.Property<double>("LengthCm")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("MaterialId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("PricePerMeter")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateOnly?>("PurchaseDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.ToTable("Purchases");
+                });
+
             modelBuilder.Entity("MaterialManagement.Api.Cut", b =>
                 {
                     b.HasOne("MaterialManagement.Api.Material", "Material")
@@ -223,15 +249,38 @@ namespace MaterialManagement.Api.Migrations
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("MaterialManagement.Api.Purchase", "Purchase")
+                        .WithMany()
+                        .HasForeignKey("PurchaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Material");
 
                     b.Navigation("Project");
+
+                    b.Navigation("Purchase");
                 });
 
             modelBuilder.Entity("MaterialManagement.Api.Piece", b =>
                 {
                     b.HasOne("MaterialManagement.Api.Material", null)
                         .WithMany("Pieces")
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MaterialManagement.Api.Purchase", null)
+                        .WithMany()
+                        .HasForeignKey("PurchaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("MaterialManagement.Api.Purchase", b =>
+                {
+                    b.HasOne("MaterialManagement.Api.Material", null)
+                        .WithMany("Purchases")
                         .HasForeignKey("MaterialId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -242,6 +291,8 @@ namespace MaterialManagement.Api.Migrations
                     b.Navigation("Cuts");
 
                     b.Navigation("Pieces");
+
+                    b.Navigation("Purchases");
                 });
 #pragma warning restore 612, 618
         }

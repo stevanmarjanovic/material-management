@@ -75,7 +75,7 @@ public static class Fibers
             .ToList();
 }
 
-/// <summary>One purchase of a fabric, always full roll width. Its first piece is RollWidthCm x LengthCm.</summary>
+/// <summary>A fabric (one name + color, bought in one store). Each purchase of it adds a piece.</summary>
 public class Material
 {
     public int Id { get; set; }
@@ -93,21 +93,31 @@ public class Material
     public DryClean? DryClean { get; set; }
     public TumbleDry? TumbleDry { get; set; }
     public string? Link { get; set; }
-    public double LengthCm { get; set; }
-    public decimal? PricePerMeter { get; set; }
-    public decimal? DiscountPercent { get; set; }
     public string? Store { get; set; }
-    public DateOnly? PurchaseDate { get; set; }
     public byte[]? Photo { get; set; }
     public string? PhotoContentType { get; set; }
     public string? PreviewColor { get; set; } // average photo color, #rrggbb
+    public List<Purchase> Purchases { get; set; } = [];
     public List<Piece> Pieces { get; set; } = [];
     public List<Cut> Cuts { get; set; } = [];
+}
+
+/// <summary>One buy of a material: full roll width x LengthCm. Its first piece has that size;
+/// every piece and cut that comes from it links back here, so each cut is costed at this purchase's price.</summary>
+public class Purchase
+{
+    public int Id { get; set; }
+    public int MaterialId { get; set; }
+    public double LengthCm { get; set; }
+    public decimal? PricePerMeter { get; set; }
+    public decimal? DiscountPercent { get; set; }
+    public DateOnly? PurchaseDate { get; set; }
 
     public decimal? FinalPricePerMeter => PricePerMeter * (1 - (DiscountPercent ?? 0) / 100);
     public decimal? TotalPrice => FinalPricePerMeter * (decimal)LengthCm / 100;
-    public decimal? CostOf(double areaCm2) =>
-        RollWidthCm is > 0 ? FinalPricePerMeter * (decimal)(areaCm2 / RollWidthCm.Value) / 100 : null;
+    // Price is per meter of the full roll width, so cost per cm² = price per m / roll width / 100.
+    public decimal? CostOf(double areaCm2, double? rollWidthCm) =>
+        rollWidthCm is > 0 ? FinalPricePerMeter * (decimal)(areaCm2 / rollWidthCm.Value) / 100 : null;
 }
 
 public class Project
@@ -131,6 +141,7 @@ public class Piece
 {
     public int Id { get; set; }
     public int MaterialId { get; set; }
+    public int PurchaseId { get; set; }
     public List<Rect> Shape { get; set; } = [];
     // Cut pieces are kept (inactive) so the last cut can be undone.
     public bool Active { get; set; } = true;
@@ -141,6 +152,8 @@ public class Cut
     public int Id { get; set; }
     public int MaterialId { get; set; }
     public int SourcePieceId { get; set; }
+    public int PurchaseId { get; set; } // purchase of the piece it was cut from (for the cut's cost)
+    public Purchase? Purchase { get; set; }
     public Material? Material { get; set; }
     public int? ProjectId { get; set; }
     public Project? Project { get; set; }
@@ -158,6 +171,7 @@ public class Db(DbContextOptions<Db> options) : DbContext(options)
     static readonly JsonSerializerOptions EnumAsText = new() { Converters = { new JsonStringEnumConverter() } };
 
     public DbSet<Material> Materials => Set<Material>();
+    public DbSet<Purchase> Purchases => Set<Purchase>();
     public DbSet<Piece> Pieces => Set<Piece>();
     public DbSet<Cut> Cuts => Set<Cut>();
     public DbSet<Project> Projects => Set<Project>();
@@ -170,8 +184,11 @@ public class Db(DbContextOptions<Db> options) : DbContext(options)
         m.Property(x => x.Iron).HasConversion<string>();
         m.Property(x => x.DryClean).HasConversion<string>();
         m.Property(x => x.TumbleDry).HasConversion<string>();
-        m.Property(x => x.PricePerMeter).HasConversion<double?>(); // SQLite can't sort/sum decimal
-        m.Property(x => x.DiscountPercent).HasConversion<double?>();
+        var pu = b.Entity<Purchase>();
+        pu.Property(x => x.PricePerMeter).HasConversion<double?>(); // SQLite can't sort/sum decimal
+        pu.Property(x => x.DiscountPercent).HasConversion<double?>();
+        b.Entity<Piece>().HasOne<Purchase>().WithMany().HasForeignKey(x => x.PurchaseId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<Cut>().HasOne(c => c.Purchase).WithMany().HasForeignKey(x => x.PurchaseId).OnDelete(DeleteBehavior.Restrict);
         var p = b.Entity<Project>();
         p.Property(x => x.Status).HasConversion<string>();
         p.Property(x => x.Wash).HasConversion<string>();
