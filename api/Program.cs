@@ -115,6 +115,25 @@ object ProjectView(Project p, IEnumerable<Cut> cuts) => new
         .Select(f => new { f.Fiber, f.Grams }),
     // Cuts left out of the fiber calculation because their material has no g/m² or no composition.
     UncountedCuts = cuts.Count(c => c.Material!.WeightGsm is not > 0 || c.Material.Composition is not { Count: > 0 }),
+    Care = ProjectCare(cuts.Select(c => c.Material!).DistinctBy(m => m.Id).ToList()),
+};
+
+// Care for the finished product, plus the materials that have no value set for each category.
+object ProjectCare(List<Material> ms) => new
+{
+    Wash = CareRules.Strictest(ms.Select(m => m.Wash)),
+    Bleach = CareRules.Strictest(ms.Select(m => m.Bleach)),
+    Iron = CareRules.Strictest(ms.Select(m => m.Iron)),
+    DryClean = CareRules.Strictest(ms.Select(m => m.DryClean)),
+    TumbleDry = CareRules.Strictest(ms.Select(m => m.TumbleDry)),
+    Missing = new Dictionary<string, IEnumerable<string>>
+    {
+        ["wash"] = ms.Where(m => m.Wash == null).Select(m => m.Name),
+        ["bleach"] = ms.Where(m => m.Bleach == null).Select(m => m.Name),
+        ["iron"] = ms.Where(m => m.Iron == null).Select(m => m.Name),
+        ["dryClean"] = ms.Where(m => m.DryClean == null).Select(m => m.Name),
+        ["tumbleDry"] = ms.Where(m => m.TumbleDry == null).Select(m => m.Name),
+    }.Where(kv => kv.Value.Any()).ToDictionary(),
 };
 
 async Task<object?> LoadProject(int id, Db db) =>

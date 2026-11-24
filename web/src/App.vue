@@ -21,6 +21,7 @@ const error = ref('')
 const photoVersion = ref(Date.now()) // cache-buster after photo upload
 const CUT_HELP = 'Drag a rectangle on the fabric (snaps to 0.5 cm), then fine-tune the numbers. Origin is the top-left corner.'
 const FIBER_HELP = 'By weight: cut area × g/m² × fiber %'
+const CARE_HELP = 'The most delicate fabric sets the limit: lowest wash temperature, gentlest ironing and drying. Dry cleaning that mixes wet cleaning (W) with solvents (P/F) becomes do not dry clean.'
 
 const selected = computed(() => materials.value.find((m) => m.id === selectedId.value))
 const project = computed(() => projects.value.find((p) => p.id === projectId.value))
@@ -377,6 +378,24 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                 <td class="num">{{ money(sum(project.cuts, 'cost')) }}</td>
               </tr>
             </table>
+          </section>
+
+          <section v-if="project.cuts.length" class="card">
+            <h3>
+              Care for the finished product
+              <span class="info" tabindex="0" :title="CARE_HELP" :aria-label="CARE_HELP">🛈</span>
+            </h3>
+            <div class="care-list">
+              <template v-for="(c, key) in CARE" :key="key">
+                <div v-if="project.care[key]" class="care-item">
+                  <CareIcon :category="key" :value="project.care[key]" />
+                  <span>{{ c.options[project.care[key]] }}</span>
+                </div>
+              </template>
+            </div>
+            <p v-for="(names, key) in project.care.missing" :key="key" class="muted">
+              {{ CARE[key].label }} not set for: {{ names.join(', ') }}
+            </p>
           </section>
 
           <section v-if="project.fibers.length" class="card">
