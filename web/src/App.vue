@@ -195,7 +195,10 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
           <section class="card head">
             <img v-if="selected.hasPhoto" :src="`/api/materials/${selected.id}/photo?v=${photoVersion}`" alt="" class="photo" />
             <div class="grow">
-              <h2>{{ selected.name }}</h2>
+              <h2>
+                <a v-if="selected.link" :href="selected.link" target="_blank" rel="noopener" title="Open product page in new tab">{{ selected.name }}</a>
+                <template v-else>{{ selected.name }}</template>
+              </h2>
               <dl>
                 <template v-for="[k, v] in [
                   ['Color', selected.color], ['Composition', formatComposition(selected.composition)],
@@ -219,7 +222,6 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                     {{ selected.needleType }} {{ selected.needleSize }}<template v-if="selected.needleSize">/{{ NEEDLE_SIZES[selected.needleSize]?.[0] }}</template>
                   </dd>
                 </template>
-                <template v-if="selected.link"><dt>Link</dt><dd><a :href="selected.link" target="_blank" rel="noopener" class="icon-link" title="Open in new tab" aria-label="Open in new tab"><span class="material-symbols-rounded" aria-hidden="true">open_in_new</span></a></dd></template>
               </dl>
               <div class="care-row">
                 <template v-for="(_, key) in CARE" :key="key">
