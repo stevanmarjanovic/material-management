@@ -205,7 +205,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
                 </template>
                 <template v-if="selected.pricePerMeter != null">
                   <dt>Price</dt>
-                  <dd><PriceTag :price="selected.pricePerMeter" :discount="selected.discountPercent" unit=" /m" /></dd>
+                  <dd><PriceTag :price="selected.pricePerMeter" :final="selected.finalPricePerMeter" :discount="selected.discountPercent" unit=" /m" /></dd>
                   <dt>Total</dt>
                   <dd>{{ money(selected.totalPrice) }}</dd>
                 </template>

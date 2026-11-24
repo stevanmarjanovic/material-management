@@ -77,6 +77,14 @@ api.MapDelete("/materials/{id:int}", async (int id, Db db) =>
     return await db.Materials.Where(m => m.Id == id).ExecuteDeleteAsync() > 0 ? Results.NoContent() : Results.NotFound();
 });
 
+// Price after discount for values not saved yet (live preview in forms). Same formula as a saved material.
+api.MapGet("/prices", (decimal pricePerMeter, decimal? discountPercent, double? lengthCm) =>
+{
+    if (pricePerMeter < 0 || discountPercent is < 0 or > 100) return Results.BadRequest("Price must be >= 0, discount 0-100 %.");
+    var m = new Material { Name = "", PricePerMeter = pricePerMeter, DiscountPercent = discountPercent, LengthCm = lengthCm ?? 0 };
+    return Results.Ok(new { m.FinalPricePerMeter, TotalPrice = lengthCm > 0 ? m.TotalPrice : null });
+});
+
 api.MapGet("/materials/{id:int}/photo", async (int id, Db db) =>
     PhotoResult(await db.Materials.Where(m => m.Id == id).Select(m => new Photo(m.Photo, m.PhotoContentType)).FirstOrDefaultAsync()));
 

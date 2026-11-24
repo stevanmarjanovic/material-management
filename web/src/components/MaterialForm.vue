@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { CARE, FIBERS, NEEDLE_TYPES, NEEDLE_SIZES } from '../catalog.js'
 import PriceTag from './PriceTag.vue'
 
@@ -24,6 +24,23 @@ const compositionError = computed(() => {
 const addFiber = () =>
   f.composition.push({ fiber: Object.keys(FIBERS).find((k) => !f.composition.some((p) => p.fiber === k)) ?? 'Other', percent: Math.max(0, 100 - compositionSum.value) })
 const photo = ref(null)
+
+// Live price preview, calculated by the API (same formula as a saved material).
+const price = ref(null) // { finalPricePerMeter, totalPrice }
+let priceTimer
+watch(
+  () => [f.pricePerMeter, f.discountPercent, f.lengthCm],
+  ([pricePerMeter, discountPercent, lengthCm]) => {
+    clearTimeout(priceTimer)
+    if (pricePerMeter === '' || pricePerMeter < 0) return (price.value = null)
+    priceTimer = setTimeout(async () => {
+      const q = new URLSearchParams({ pricePerMeter, discountPercent: discountPercent || 0, lengthCm: lengthCm || 0 })
+      const res = await fetch(`/api/prices?${q}`)
+      price.value = res.ok ? await res.json() : null
+    }, 250)
+  },
+  { immediate: true },
+)
 const widthLocked = !!props.initial.cuts?.length // first piece is already cut
 
 function submit() {
@@ -98,8 +115,8 @@ function submit() {
       <label>Price per meter<input v-model.number="f.pricePerMeter" type="number" step="0.01" min="0" /></label>
       <label>Discount (%)<input v-model.number="f.discountPercent" type="number" step="0.1" min="0" max="100" /></label>
       <p v-if="f.pricePerMeter" class="muted">
-        <PriceTag :price="f.pricePerMeter" :discount="f.discountPercent || 0" unit=" /m" />
-        <template v-if="f.lengthCm"><br />Total: {{ (f.pricePerMeter * (1 - (f.discountPercent || 0) / 100) * f.lengthCm / 100).toFixed(2) }}</template>
+        <PriceTag :price="f.pricePerMeter" :final="price?.finalPricePerMeter" :discount="f.discountPercent || 0" unit=" /m" />
+        <template v-if="price?.totalPrice != null"><br />Total: {{ price.totalPrice.toFixed(2) }}</template>
       </p>
       <label>Store<input v-model="f.store" /></label>
       <label>Date<input v-model="f.purchaseDate" type="date" /></label>
