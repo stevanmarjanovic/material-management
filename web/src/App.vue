@@ -28,19 +28,6 @@ const project = computed(() => projects.value.find((p) => p.id === projectId.val
 const piece = computed(() => selected.value?.pieces.find((p) => p.id === pieceId.value))
 const m2 = (cm2) => (cm2 / 10000).toFixed(2)
 const money = (v) => (v == null ? '–' : v.toFixed(2))
-const sum = (list, key) => list.reduce((s, x) => s + (x[key] ?? 0), 0)
-
-// Project overview: one row per material used.
-const perMaterial = computed(() => {
-  const rows = {}
-  for (const c of project.value?.cuts ?? []) {
-    const r = (rows[c.materialId] ??= { materialId: c.materialId, name: c.materialName, color: c.materialColor, count: 0, area: 0, cost: 0 })
-    r.count++
-    r.area += c.area
-    r.cost += c.cost ?? 0
-  }
-  return Object.values(rows)
-})
 
 async function api(method, url, body) {
   error.value = ''
@@ -57,37 +44,7 @@ async function api(method, url, body) {
   return res.status === 204 ? null : res.json()
 }
 
-// Average color of an image (File or URL) as #rrggbb, from a 64x64 downscale.
-async function averageColor(src) {
-  const bitmap = await createImageBitmap(src instanceof Blob ? src : await (await fetch(src)).blob())
-  const canvas = Object.assign(document.createElement('canvas'), { width: 64, height: 64 })
-  const ctx = canvas.getContext('2d')
-  ctx.drawImage(bitmap, 0, 0, 64, 64)
-  const px = ctx.getImageData(0, 0, 64, 64).data
-  const sum = [0, 0, 0]
-  let n = 0
-  for (let i = 0; i < px.length; i += 4) {
-    if (px[i + 3] < 128) continue // skip transparent pixels
-    sum[0] += px[i]; sum[1] += px[i + 1]; sum[2] += px[i + 2]
-    n++
-  }
-  if (!n) return null
-  return '#' + sum.map((c) => Math.round(c / n).toString(16).padStart(2, '0')).join('')
-}
-
-async function savePreviewColor(m, src) {
-  const previewColor = await averageColor(src).catch(() => null) // unreadable image: keep the default color
-  if (!previewColor) return
-  await api('PUT', `/materials/${m.id}/preview-color`, { previewColor })
-  m.previewColor = previewColor
-}
-
-async function loadMaterials() {
-  materials.value = await api('GET', '/materials')
-  // Photos uploaded before preview colors existed.
-  for (const m of materials.value.filter((m) => m.hasPhoto && !m.previewColor))
-    savePreviewColor(m, `/api/materials/${m.id}/photo`)
-}
+const loadMaterials = async () => (materials.value = await api('GET', '/materials'))
 const loadProjects = async () => (projects.value = await api('GET', '/projects'))
 function replace(list, item) {
   const i = list.value.findIndex((x) => x.id === item.id)
@@ -113,11 +70,10 @@ function select(id) {
 }
 
 async function saveMaterial(body, photo) {
-  const m = body.id ? await api('PUT', `/materials/${body.id}`, body) : await api('POST', '/materials', body)
+  let m = body.id ? await api('PUT', `/materials/${body.id}`, body) : await api('POST', '/materials', body)
   if (photo) {
     await uploadPhoto('materials', m.id, photo)
-    m.hasPhoto = true
-    await savePreviewColor(m, photo)
+    m = await api('GET', `/materials/${m.id}`) // the server sets the preview color from the photo
   }
   replace(materials, m)
   select(m.id)
@@ -202,7 +158,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
             <span>
               <strong>{{ m.name }}</strong><br />
               <small>{{ m.color }}</small><br />
-              <small>{{ m.pieces.length }} piece(s) · {{ m2(sum(m.pieces, 'area')) }} m²</small>
+              <small>{{ m.pieces.length }} piece(s) · {{ m2(m.remainingArea) }} m²</small>
             </span>
           </li>
         </ul>
@@ -218,7 +174,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
             <span>
               <strong>{{ p.name }}</strong><br />
               <small>{{ PROJECT_STATUS[p.status] }}<template v-if="p.startDate"> · {{ p.startDate }}</template></small><br />
-              <small>{{ p.cuts.length }} cut(s) · {{ m2(sum(p.cuts, 'area')) }} m²</small>
+              <small>{{ p.totals.pieces }} cut(s) · {{ m2(p.totals.area) }} m²</small>
             </span>
           </li>
         </ul>
@@ -277,7 +233,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
           </section>
 
           <section class="card">
-            <h3>Pieces — {{ m2(sum(selected.pieces, 'area')) }} m² left</h3>
+            <h3>Pieces — {{ m2(selected.remainingArea) }} m² left</h3>
             <p v-if="!selected.pieces.length" class="muted">Everything is used up.</p>
             <div class="pieces">
               <button
@@ -365,17 +321,17 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
             <p v-if="!project.cuts.length" class="muted">No cuts yet. Cut a piece under Materials and pick this project.</p>
             <table v-else>
               <tr><th>Material</th><th class="num">Pieces</th><th class="num">m²</th><th class="num">Price</th></tr>
-              <tr v-for="r in perMaterial" :key="r.materialId">
+              <tr v-for="r in project.materials" :key="r.materialId">
                 <td><a href="#" @click.prevent="select(r.materialId)">{{ r.name }}</a> <small class="muted">{{ r.color }}</small></td>
-                <td class="num">{{ r.count }}</td>
+                <td class="num">{{ r.pieces }}</td>
                 <td class="num">{{ m2(r.area) }}</td>
                 <td class="num">{{ money(r.cost) }}</td>
               </tr>
               <tr class="total">
                 <td>Total</td>
-                <td class="num">{{ project.cuts.length }}</td>
-                <td class="num">{{ m2(sum(project.cuts, 'area')) }}</td>
-                <td class="num">{{ money(sum(project.cuts, 'cost')) }}</td>
+                <td class="num">{{ project.totals.pieces }}</td>
+                <td class="num">{{ m2(project.totals.area) }}</td>
+                <td class="num">{{ money(project.totals.cost) }}</td>
               </tr>
             </table>
           </section>
@@ -412,7 +368,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects()]))
               <tr v-for="fb in project.fibers" :key="fb.fiber">
                 <td>{{ FIBERS[fb.fiber] }}</td>
                 <td class="num">{{ fb.grams.toFixed(1) }}</td>
-                <td class="num">{{ (fb.grams / sum(project.fibers, 'grams') * 100).toFixed(1) }}</td>
+                <td class="num">{{ fb.percent.toFixed(1) }}</td>
               </tr>
             </table>
             <p v-if="project.uncountedCuts" class="muted">

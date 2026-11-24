@@ -8,7 +8,15 @@ builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.Converters.Ad
 var app = builder.Build();
 
 // Schema changes: dotnet ef migrations add <Name> --project api
-using (var scope = app.Services.CreateScope()) scope.ServiceProvider.GetRequiredService<Db>().Database.Migrate();
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<Db>();
+    db.Database.Migrate();
+    // Photos without a preview color yet (uploaded before it existed, or reset by a migration).
+    foreach (var m in db.Materials.Where(m => m.Photo != null && m.PreviewColor == null).ToList())
+        m.PreviewColor = ImageColor.AverageCenter(m.Photo!);
+    db.SaveChanges();
+}
 
 var api = app.MapGroup("/api");
 
@@ -19,6 +27,7 @@ object View(Material m) => new
     m.LengthCm, m.PricePerMeter, m.DiscountPercent, m.FinalPricePerMeter, m.TotalPrice,
     HasPhoto = m.Photo != null, m.PreviewColor,
     Pieces = m.Pieces.Where(p => p.Active).OrderBy(p => p.Id).Select(p => new { p.Id, p.Shape, Area = Geometry.Area(p.Shape) }),
+    RemainingArea = m.Pieces.Where(p => p.Active).Sum(p => Geometry.Area(p.Shape)),
     Cuts = m.Cuts.OrderByDescending(c => c.Id).Select(c => new
     {
         c.Id, c.SourcePieceId, c.X, c.Y, c.W, c.H, c.Label, c.CreatedAt, c.ProjectId, ProjectName = c.Project?.Name,
@@ -77,18 +86,10 @@ api.MapPut("/materials/{id:int}/photo", async (int id, IFormFile file, Db db) =>
     if (m == null) return Results.NotFound();
     if (await ReadPhoto(file) is not { } bytes) return Results.BadRequest("Only image files up to 10 MB.");
     (m.Photo, m.PhotoContentType) = (bytes, file.ContentType);
+    m.PreviewColor = ImageColor.AverageCenter(bytes);
     await db.SaveChangesAsync();
     return Results.NoContent();
 }).DisableAntiforgery(); // local single-user app, no cookies/auth
-
-// The browser averages the photo's pixels (no image library needed on the server).
-api.MapPut("/materials/{id:int}/preview-color", async (int id, ColorInput input, Db db) =>
-{
-    if (!System.Text.RegularExpressions.Regex.IsMatch(input.PreviewColor ?? "", "^#[0-9a-fA-F]{6}$"))
-        return Results.BadRequest("Color must look like #a1b2c3.");
-    return await db.Materials.Where(m => m.Id == id).ExecuteUpdateAsync(s => s.SetProperty(m => m.PreviewColor, input.PreviewColor)) > 0
-        ? Results.NoContent() : Results.NotFound();
-});
 
 static IResult PhotoResult(Photo? p) =>
     p?.Bytes is { } bytes ? Results.File(bytes, p.ContentType ?? "image/jpeg") : Results.NotFound();
@@ -112,12 +113,24 @@ object ProjectView(Project p, IEnumerable<Cut> cuts) => new
         c.Id, c.MaterialId, MaterialName = c.Material!.Name, MaterialColor = c.Material.Color, c.W, c.H, c.Label, c.CreatedAt,
         Area = c.W * c.H, Cost = c.Material.CostOf(c.W * c.H),
     }),
-    Fibers = Fibers.ByWeight(cuts.Select(c => (c.W * c.H, c.Material!.WeightGsm, c.Material.Composition)))
-        .Select(f => new { f.Fiber, f.Grams }),
+    // One row per material used: number of cut pieces, area (cm²) and cost.
+    Materials = cuts.GroupBy(c => c.Material!).OrderBy(g => g.Key.Name).Select(g => new
+    {
+        MaterialId = g.Key.Id, g.Key.Name, g.Key.Color, Pieces = g.Count(),
+        Area = g.Sum(c => c.W * c.H), Cost = g.Sum(c => g.Key.CostOf(c.W * c.H)),
+    }),
+    Totals = new { Pieces = cuts.Count(), Area = cuts.Sum(c => c.W * c.H), Cost = cuts.Sum(c => c.Material!.CostOf(c.W * c.H)) },
+    Fibers = FiberView(Fibers.ByWeight(cuts.Select(c => (c.W * c.H, c.Material!.WeightGsm, c.Material.Composition)))),
     // Cuts left out of the fiber calculation because their material has no g/m² or no composition.
     UncountedCuts = cuts.Count(c => c.Material!.WeightGsm is not > 0 || c.Material.Composition is not { Count: > 0 }),
     Care = ProjectCare(cuts.Select(c => c.Material!).DistinctBy(m => m.Id).ToList()),
 };
+
+static IEnumerable<object> FiberView(List<(Fiber Fiber, double Grams)> fibers)
+{
+    var total = fibers.Sum(f => f.Grams);
+    return fibers.Select(f => new { f.Fiber, f.Grams, Percent = f.Grams / total * 100 });
+}
 
 // Care for the finished product, plus the materials that have no value set for each category.
 object ProjectCare(List<Material> ms) => new
@@ -229,8 +242,6 @@ app.Run();
 public record CutInput(double X, double Y, double W, double H, string? Label, int? ProjectId);
 
 public record Photo(byte[]? Bytes, string? ContentType);
-
-public record ColorInput(string? PreviewColor);
 
 public record ProjectInput(
     string Name, ProjectStatus Status, DateOnly? StartDate, string? Notes,

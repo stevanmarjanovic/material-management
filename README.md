@@ -13,7 +13,7 @@ A small inventory app for hobby sewing. Keep track of the fabrics you buy, see t
 - Price per meter plus a discount %, both saved. The page shows the original price struck through next to the discounted one, and the total you paid.
 - Needle type and size, shown with their color code.
 - Care symbols (ISO 3758) for washing, bleaching, ironing, dry cleaning and tumble drying.
-- Preview color: the average color of the photo, calculated in the browser and used to draw the pieces.
+- Preview color: the average color of the center of the photo (skipping background at the edges), calculated by the API and used to draw the pieces.
 - Duplicate a material when you buy the same fabric again.
 
 **Cutting**
@@ -32,11 +32,13 @@ A small inventory app for hobby sewing. Keep track of the fabrics you buy, see t
 
 | Part | Technology |
 |---|---|
-| API | .NET 10 minimal API, EF Core 10, SQLite |
+| API | .NET 10 minimal API, EF Core 10, SQLite, SkiaSharp (photo colors) |
 | Web | Vue 3, Vite |
 | Tests | xUnit |
 
-No other runtime dependencies. Photos are stored in the database, so one file holds all your data.
+Photos are stored in the database, so one file holds all your data. All calculations (cutting, prices, fiber composition, care) are done by the API, so other clients can reuse it.
+
+On Linux, also add the `SkiaSharp.NativeAssets.Linux` package to the API.
 
 ## Getting started
 
