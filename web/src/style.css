@@ -42,6 +42,8 @@ button { cursor: pointer; }
 /* Links (to a project, a material, a product page): normal text color, dashed underline. */
 a { color: inherit; text-decoration: underline dashed var(--border); text-underline-offset: 3px; }
 button:disabled { opacity: .5; cursor: default; }
+/* Locked fields (e.g. length or roll width after the first cut): greyed out, but still readable. */
+input:disabled, select:disabled { background: var(--bg); color: var(--muted); cursor: not-allowed; }
 button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 button.danger { color: var(--danger); }
 .actions { display: flex; gap: .5rem; }
