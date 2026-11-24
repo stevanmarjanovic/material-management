@@ -69,5 +69,10 @@ tr.total td { font-weight: 600; border-bottom: none; }
 .info { color: var(--muted); font-size: 18px !important; vertical-align: -3px; cursor: help; }
 .care-list { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; }
 .care-item { display: flex; align-items: center; gap: .5rem; }
+.care-pick { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; }
+.care-pick-label { width: 8rem; color: var(--muted); font-size: .9rem; }
+.care-option { padding: 0; border: 0; background: none; opacity: .25; }
+.care-option:hover { opacity: .6; }
+.care-option.selected { opacity: 1; }
 .icon-btn { display: inline-flex; align-items: center; justify-content: center; padding: .3rem; }
 .icon-btn .material-symbols-rounded { font-size: 20px; }

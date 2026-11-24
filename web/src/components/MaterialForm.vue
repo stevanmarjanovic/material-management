@@ -2,6 +2,7 @@
 import { reactive, ref, watch } from 'vue'
 import { CARE, FIBERS, FIBER_COLORS, NEEDLE_TYPES, NEEDLE_SIZES } from '../catalog.js'
 import FiberSlider from './FiberSlider.vue'
+import CareIcon from './CareIcon.vue'
 import PriceTag from './PriceTag.vue'
 import IconButton from './IconButton.vue'
 
@@ -130,12 +131,16 @@ function submit() {
 
     <fieldset>
       <legend>Care</legend>
-      <label v-for="(c, key) in CARE" :key="key">{{ c.label }}
-        <select v-model="f[key]">
-          <option value="">–</option>
-          <option v-for="(text, v) in c.options" :key="v" :value="v">{{ text }}</option>
-        </select>
-      </label>
+      <!-- Every symbol of a category; the selected one is black, the rest greyed out. Click it again to clear. -->
+      <div v-for="(c, key) in CARE" :key="key" class="care-pick" role="group" :aria-label="c.label">
+        <span class="care-pick-label">{{ c.label }}</span>
+        <button
+          v-for="(text, v) in c.options" :key="v" type="button" class="care-option" :class="{ selected: f[key] === v }"
+          :aria-pressed="f[key] === v" :aria-label="text" @click="f[key] = f[key] === v ? '' : v"
+        >
+          <CareIcon :category="key" :value="v" />
+        </button>
+      </div>
     </fieldset>
 
     <fieldset>
