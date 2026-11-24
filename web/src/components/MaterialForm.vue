@@ -44,7 +44,7 @@ function submit() {
     </fieldset>
 
     <fieldset>
-      <legend>Needle (Schmetz)</legend>
+      <legend>Needle</legend>
       <label>Type
         <select v-model="f.needleType">
           <option value="">–</option>

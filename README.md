@@ -10,7 +10,7 @@ A small inventory app for hobby sewing. Keep track of the fabrics you buy, see t
 - One material per purchase. Fabric is always bought at full roll width, so you enter the roll width and the bought length.
 - Properties: name, color, composition, weight (g/m²), certificate, link and photo.
 - Price per meter plus a discount %, both saved. The page shows the original price struck through next to the discounted one, and the total you paid.
-- Schmetz needle type and size, shown with Schmetz's own color code.
+- Needle type and size, shown with their color code.
 - Care symbols (ISO 3758) for washing, bleaching, ironing, dry cleaning and tumble drying.
 - Preview color: the average color of the photo, calculated in the browser and used to draw the pieces.
 - Duplicate a material when you buy the same fabric again.
@@ -83,7 +83,7 @@ api/
 tests/              xUnit tests for Geometry
 web/
   src/App.vue       main UI: materials, cutting, projects
-  src/catalog.js    care values, Schmetz needle types and sizes, project statuses
+  src/catalog.js    care values, needle types and sizes, project statuses
   src/components/   material and project forms, piece drawing, care icon, price tag
   public/care/      care symbol SVGs
 ```
@@ -114,4 +114,3 @@ It is applied automatically the next time the API starts.
 
 Care symbols are public domain SVGs from [Wikimedia Commons, Category:Laundry symbols](https://commons.wikimedia.org/wiki/Category:Laundry_symbols). Each file's source is listed in [`web/public/care/CREDITS.txt`](web/public/care/CREDITS.txt).
 
-Needle color codes follow Schmetz's published color marking chart.

@@ -21,7 +21,7 @@ export const CARE = {
   tumbleDry: { label: 'Tumble drying', options: { Normal: 'Normal', Low: 'Low heat', DoNot: 'Do not tumble dry' } },
 }
 
-// Schmetz colour code. null = no colour band for that type.
+// Needle colour code. null = no colour band for that type.
 export const NEEDLE_TYPES = {
   Universal: null, Stretch: '#f7d917', Jersey: '#f07818', Jeans: '#005fa0', Leather: '#a36b35',
   Microtex: '#5b4886', Quilting: '#00977a', Embroidery: '#c0404a', Metallic: '#f08a96', Topstitch: '#6cc3c4',
