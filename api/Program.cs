@@ -106,6 +106,7 @@ static async Task<byte[]?> ReadPhoto(IFormFile file)
 object ProjectView(Project p, IEnumerable<Cut> cuts) => new
 {
     p.Id, p.Name, p.Status, p.StartDate, p.Notes, HasPhoto = p.Photo != null,
+    p.Wash, p.Bleach, p.Iron, p.DryClean, p.TumbleDry, // overrides; `Care` below is the calculated value
     Cuts = cuts.OrderBy(c => c.Material!.Name).ThenBy(c => c.Id).Select(c => new
     {
         c.Id, c.MaterialId, MaterialName = c.Material!.Name, MaterialColor = c.Material.Color, c.W, c.H, c.Label, c.CreatedAt,
@@ -231,9 +232,15 @@ public record Photo(byte[]? Bytes, string? ContentType);
 
 public record ColorInput(string? PreviewColor);
 
-public record ProjectInput(string Name, ProjectStatus Status, DateOnly? StartDate, string? Notes)
+public record ProjectInput(
+    string Name, ProjectStatus Status, DateOnly? StartDate, string? Notes,
+    Wash? Wash, Bleach? Bleach, Iron? Iron, DryClean? DryClean, TumbleDry? TumbleDry)
 {
-    public void Apply(Project p) => (p.Name, p.Status, p.StartDate, p.Notes) = (Name.Trim(), Status, StartDate, Notes);
+    public void Apply(Project p)
+    {
+        (p.Name, p.Status, p.StartDate, p.Notes) = (Name.Trim(), Status, StartDate, Notes);
+        (p.Wash, p.Bleach, p.Iron, p.DryClean, p.TumbleDry) = (Wash, Bleach, Iron, DryClean, TumbleDry);
+    }
 }
 
 public record MaterialInput(

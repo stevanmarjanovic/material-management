@@ -119,6 +119,12 @@ public class Project
     public string? Notes { get; set; }
     public byte[]? Photo { get; set; }
     public string? PhotoContentType { get; set; }
+    // Care overrides for the finished product; null = use the calculated (strictest) value.
+    public Wash? Wash { get; set; }
+    public Bleach? Bleach { get; set; }
+    public Iron? Iron { get; set; }
+    public DryClean? DryClean { get; set; }
+    public TumbleDry? TumbleDry { get; set; }
 }
 
 public class Piece
@@ -166,7 +172,13 @@ public class Db(DbContextOptions<Db> options) : DbContext(options)
         m.Property(x => x.TumbleDry).HasConversion<string>();
         m.Property(x => x.PricePerMeter).HasConversion<double?>(); // SQLite can't sort/sum decimal
         m.Property(x => x.DiscountPercent).HasConversion<double?>();
-        b.Entity<Project>().Property(x => x.Status).HasConversion<string>();
+        var p = b.Entity<Project>();
+        p.Property(x => x.Status).HasConversion<string>();
+        p.Property(x => x.Wash).HasConversion<string>();
+        p.Property(x => x.Bleach).HasConversion<string>();
+        p.Property(x => x.Iron).HasConversion<string>();
+        p.Property(x => x.DryClean).HasConversion<string>();
+        p.Property(x => x.TumbleDry).HasConversion<string>();
         b.Entity<Cut>().HasOne(c => c.Project).WithMany().OnDelete(DeleteBehavior.SetNull);
         m.Property(x => x.Composition).HasConversion(
             v => v == null ? null : JsonSerializer.Serialize(v, EnumAsText),

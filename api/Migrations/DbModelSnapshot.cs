@@ -170,6 +170,15 @@ namespace MaterialManagement.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Bleach")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DryClean")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Iron")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -188,6 +197,12 @@ namespace MaterialManagement.Api.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TumbleDry")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Wash")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
