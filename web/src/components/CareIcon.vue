@@ -12,5 +12,9 @@ const title = computed(() => `${CARE[props.category].label}: ${CARE[props.catego
 </template>
 
 <style scoped>
-.care { width: 40px; height: 40px; background: #fff; border-radius: 4px; padding: 2px; }
+.care { width: 40px; height: 40px; padding: 2px; }
+/* The symbols are black SVGs; in dark mode show them white instead. */
+@media (prefers-color-scheme: dark) {
+  .care { filter: invert(1); }
+}
 </style>
