@@ -1,0 +1,34 @@
+Laundry symbols from Wikimedia Commons, Category:Laundry_symbols
+
+bleach-Any.svg <- Bleichen.svg | Public domain | https://commons.wikimedia.org/wiki/File:Bleichen.svg
+bleach-DoNot.svg <- Nicht_bleichen_v2.svg | Public domain | https://commons.wikimedia.org/wiki/File:Nicht_bleichen_v2.svg
+bleach-NonChlorine.svg <- Sauerstoffbleichen.svg | Public domain | https://commons.wikimedia.org/wiki/File:Sauerstoffbleichen.svg
+dryClean-DoNot.svg <- Nicht_chemisch_reinigen.svg | Public domain | https://commons.wikimedia.org/wiki/File:Nicht_chemisch_reinigen.svg
+dryClean-F.svg <- Professionelle_reinigung_(F).svg | Public domain | https://commons.wikimedia.org/wiki/File:Professionelle_reinigung_%28F%29.svg
+dryClean-FMild.svg <- Professionelle_reinigung_(F)s.svg | Public domain | https://commons.wikimedia.org/wiki/File:Professionelle_reinigung_%28F%29s.svg
+dryClean-P.svg <- Professionelle_reinigung_(P).svg | Public domain | https://commons.wikimedia.org/wiki/File:Professionelle_reinigung_%28P%29.svg
+dryClean-PMild.svg <- Professionelle_reinigung_(P)s.svg | Public domain | https://commons.wikimedia.org/wiki/File:Professionelle_reinigung_%28P%29s.svg
+dryClean-W.svg <- Professionelle_reinigung_(W).svg | Public domain | https://commons.wikimedia.org/wiki/File:Professionelle_reinigung_%28W%29.svg
+dryClean-WMild.svg <- Professionelle_reinigung_(W)s.svg | Public domain | https://commons.wikimedia.org/wiki/File:Professionelle_reinigung_%28W%29s.svg
+dryClean-WVeryMild.svg <- Professionelle_reinigung_(W)ss.svg | Public domain | https://commons.wikimedia.org/wiki/File:Professionelle_reinigung_%28W%29ss.svg
+iron-DoNot.svg <- Nicht_bügeln.svg | Public domain | https://commons.wikimedia.org/wiki/File:Nicht_b%C3%BCgeln.svg
+iron-High.svg <- Bügeln_3.svg | Public domain | https://commons.wikimedia.org/wiki/File:B%C3%BCgeln_3.svg
+iron-Low.svg <- Bügeln_1.svg | Public domain | https://commons.wikimedia.org/wiki/File:B%C3%BCgeln_1.svg
+iron-Medium.svg <- Bügeln_2.svg | Public domain | https://commons.wikimedia.org/wiki/File:B%C3%BCgeln_2.svg
+tumbleDry-DoNot.svg <- Nicht_trommeltrocknen.svg | Public domain | https://commons.wikimedia.org/wiki/File:Nicht_trommeltrocknen.svg
+tumbleDry-Low.svg <- Trommeltrocknen_1.svg | Public domain | https://commons.wikimedia.org/wiki/File:Trommeltrocknen_1.svg
+tumbleDry-Normal.svg <- Trommeltrocknen_2.svg | Public domain | https://commons.wikimedia.org/wiki/File:Trommeltrocknen_2.svg
+wash-DoNot.svg <- Nicht_waschen.svg | Public domain | https://commons.wikimedia.org/wiki/File:Nicht_waschen.svg
+wash-Hand.svg <- Handwäsche.svg | Public domain | https://commons.wikimedia.org/wiki/File:Handw%C3%A4sche.svg
+wash-W30.svg <- Waschen_30.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_30.svg
+wash-W30Mild.svg <- Waschen_30s.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_30s.svg
+wash-W30VeryMild.svg <- Waschen_30ss.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_30ss.svg
+wash-W40.svg <- Waschen_40.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_40.svg
+wash-W40Mild.svg <- Waschen_40s.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_40s.svg
+wash-W40VeryMild.svg <- Waschen_40ss.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_40ss.svg
+wash-W50.svg <- Waschen_50.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_50.svg
+wash-W50Mild.svg <- Waschen_50s.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_50s.svg
+wash-W60.svg <- Waschen_60.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_60.svg
+wash-W60Mild.svg <- Waschen_60s.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_60s.svg
+wash-W70.svg <- Waschen_70.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_70.svg
+wash-W95.svg <- Waschen_95.svg | Public domain | https://commons.wikimedia.org/wiki/File:Waschen_95.svg
