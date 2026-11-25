@@ -310,6 +310,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects(), loadStores()]))
           <section class="card">
             <h3>Purchases</h3>
             <table v-if="selected.purchases.length || purchaseEditing" class="purchases">
+              <tbody>
               <tr>
                 <th>Date</th><th class="num">Length (cm)</th><th class="num">Price ({{ currency }}/m)</th>
                 <th class="num">Discount (%)</th><th class="num">Total ({{ currency }})</th><th>Purchase ID</th><th />
@@ -335,6 +336,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects(), loadStores()]))
                 </tr>
               </template>
               <PurchaseRow v-if="purchaseEditing && !purchaseEditing.id" :initial="purchaseEditing" @save="savePurchase" @cancel="purchaseEditing = null" />
+              </tbody>
             </table>
             <p v-else class="muted">No purchases yet. Adding one creates its first piece: {{ selected.rollWidthCm }} cm × the length bought.</p>
             <IconButton v-if="!purchaseEditing" icon="add" label="Add purchase" text="Add purchase" class="add-purchase" @click="purchaseEditing = {}" />
@@ -387,6 +389,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects(), loadStores()]))
             <h3>Cut log</h3>
             <p v-if="!selected.cuts.length" class="muted">No cuts yet.</p>
             <table v-else>
+              <tbody>
               <tr><th>Date</th><th>Project</th><th>Label</th><th>Size (cm)</th><th class="num">m²</th><th class="num">Price ({{ currency }})</th><th /></tr>
               <tr v-for="(c, i) in selected.cuts" :key="c.id">
                 <td>{{ new Date(c.createdAt).toLocaleString() }}</td>
@@ -397,6 +400,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects(), loadStores()]))
                 <td class="num">{{ money(c.cost) }}</td>
                 <td class="action"><IconButton v-if="i === 0" icon="undo" label="Undo cut" class="plain" @click="undoCut" /></td>
               </tr>
+              </tbody>
             </table>
           </section>
         </template>
@@ -425,12 +429,14 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects(), loadStores()]))
                   <span class="info material-symbols-rounded" role="img" tabindex="0" :title="FIBER_HELP" :aria-label="FIBER_HELP">help</span>
                 </h3>
                 <table>
+                  <tbody>
                   <tr><th>Fiber</th><th class="num">Grams</th><th class="num">%</th></tr>
                   <tr v-for="fb in project.fibers" :key="fb.fiber">
                     <td>{{ FIBERS[fb.fiber] }}</td>
                     <td class="num">{{ fb.grams.toFixed(1) }}</td>
                     <td class="num">{{ fb.percent.toFixed(1) }}</td>
                   </tr>
+                  </tbody>
                 </table>
                 <p v-if="project.uncountedCuts" class="muted">
                   {{ project.uncountedCuts }} cut(s) not counted: their material has no g/m² or no composition.
@@ -468,6 +474,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects(), loadStores()]))
             <h3>Materials used</h3>
             <p v-if="!project.cuts.length" class="muted">No cuts yet. Cut a piece under Materials and pick this project.</p>
             <table v-else>
+              <tbody>
               <tr><th>Material</th><th class="num">Pieces</th><th class="num">m²</th><th class="num">Price ({{ currency }})</th></tr>
               <tr v-for="r in project.materials" :key="r.materialId">
                 <td><a href="#" @click.prevent="select(r.materialId)">{{ r.name }}</a> <small class="muted">{{ r.color }}</small></td>
@@ -481,12 +488,14 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects(), loadStores()]))
                 <td class="num">{{ m2(project.totals.area) }}</td>
                 <td class="num">{{ money(project.totals.cost) }}</td>
               </tr>
+              </tbody>
             </table>
           </section>
 
           <section v-if="project.cuts.length" class="card">
             <h3>Cut pieces</h3>
             <table>
+              <tbody>
               <tr><th>Material</th><th>Label</th><th>Size (cm)</th><th class="num">m²</th><th class="num">Price ({{ currency }})</th></tr>
               <tr v-for="c in project.cuts" :key="c.id">
                 <td>{{ c.materialName }}</td>
@@ -495,6 +504,7 @@ onMounted(() => Promise.all([loadMaterials(), loadProjects(), loadStores()]))
                 <td class="num">{{ m2(c.area) }}</td>
                 <td class="num">{{ money(c.cost) }}</td>
               </tr>
+              </tbody>
             </table>
           </section>
         </template>
