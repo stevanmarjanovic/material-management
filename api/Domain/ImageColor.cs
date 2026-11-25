@@ -1,6 +1,6 @@
 using SkiaSharp;
 
-namespace MaterialManagement.Api;
+namespace MaterialManagement.Api.Domain;
 
 public static class ImageColor
 {

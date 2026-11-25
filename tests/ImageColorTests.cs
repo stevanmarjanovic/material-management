@@ -1,4 +1,5 @@
-using MaterialManagement.Api;
+using MaterialManagement.Api.Domain;
+using MaterialManagement.Api.Models;
 using SkiaSharp;
 
 public class ImageColorTests

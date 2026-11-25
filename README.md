@@ -38,7 +38,7 @@ A small inventory app for hobby sewing. Keep track of the fabrics you buy, see t
 
 | Part | Technology |
 |---|---|
-| API | .NET 10 minimal API, EF Core 10, SQLite, SkiaSharp (photo colors) |
+| API | .NET 10 ASP.NET Core controllers, EF Core 10, SQLite, SkiaSharp (photo colors) |
 | Web | Vue 3, Vite |
 | Tests | xUnit |
 
@@ -87,11 +87,15 @@ The tests cover the cutting geometry: cutting holes, splitting a piece in two, r
 
 ```
 api/
-  Program.cs        endpoints (materials, pieces, cuts, projects, photos)
-  Data.cs           entities, enums, DbContext
-  Geometry.cs       cutting: rectangle subtraction, splitting into connected pieces
+  Program.cs        startup: services, migrations, routing
+  Controllers/      HTTP endpoints, thin: call a service, return its result
+  Services/         business rules and database work, one per area (materials, purchases, cuts, stores, projects)
+  Dtos/             request inputs (with validation) and response views
+  Models/           entities and enums
+  Data/             DbContext
+  Domain/           pure calculations: cutting geometry, care rules, fibers, photo color
   Migrations/       EF Core migrations, applied on startup
-tests/              xUnit tests for Geometry
+tests/              xUnit tests for the Domain calculations and model prices
 web/
   src/App.vue       main UI: materials, cutting, projects
   src/catalog.js    care values, needle types and sizes, project statuses
@@ -112,7 +116,7 @@ The browser draws a piece's outline by splitting it into a grid at every rectang
 
 ## Changing the data model
 
-After editing `api/Data.cs`, add a migration:
+After editing `api/Models/` or `api/Data/Db.cs`, add a migration:
 
 ```bash
 dotnet tool restore
